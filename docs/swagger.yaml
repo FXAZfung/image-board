@@ -1,0 +1,371 @@
+definitions:
+  handles.CategoryReq:
+    properties:
+      is_public:
+        type: boolean
+      is_random:
+        type: boolean
+      name:
+        type: string
+    type: object
+  handles.LoginReq:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  model.SettingItem:
+    properties:
+      flag:
+        description: 0 = public, 1 = private, 2 = readonly, 3 = deprecated, etc.
+        type: integer
+      group:
+        description: use to group setting in frontend
+        type: integer
+      help:
+        description: help message
+        type: string
+      index:
+        type: integer
+      key:
+        description: unique key
+        type: string
+      options:
+        description: values for select
+        type: string
+      type:
+        description: string, number, bool, select
+        type: string
+      value:
+        description: value
+        type: string
+    required:
+    - key
+    type: object
+info:
+  contact: {}
+paths:
+  /api/auth/categories:
+    post:
+      consumes:
+      - application/json
+      description: 创建分类
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 分类信息
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/handles.CategoryReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            type: string
+      summary: 创建分类
+      tags:
+      - category
+  /api/auth/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传图片
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: 自定义短链
+        in: formData
+        name: short_link
+        type: string
+      - description: 分类
+        in: formData
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片上传成功
+          schema:
+            type: string
+      summary: 上传图片
+      tags:
+      - auth
+  /api/private/setting:
+    delete:
+      consumes:
+      - application/json
+      description: 删除设置
+      parameters:
+      - description: key
+        in: query
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 删除设置
+      tags:
+      - setting
+    get:
+      consumes:
+      - application/json
+      description: 获取设置
+      parameters:
+      - description: key
+        in: query
+        name: key
+        type: string
+      - description: keys
+        in: query
+        name: keys
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置
+          schema:
+            type: string
+      summary: 获取设置
+      tags:
+      - setting
+    post:
+      consumes:
+      - application/json
+      description: 保存设置
+      parameters:
+      - description: 设置
+        in: body
+        name: settings
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.SettingItem'
+          type: array
+      produces:
+      - application/json
+      responses: {}
+      summary: 保存设置
+      tags:
+      - setting
+  /api/private/setting/token:
+    post:
+      consumes:
+      - application/json
+      description: 重置token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: 重置token
+      tags:
+      - setting
+  /api/private/settings:
+    get:
+      consumes:
+      - application/json
+      description: 列出设置
+      parameters:
+      - description: group
+        in: query
+        name: group
+        type: string
+      - description: groups
+        in: query
+        name: groups
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置列表
+          schema:
+            items:
+              $ref: '#/definitions/model.SettingItem'
+            type: array
+      summary: 列出设置
+      tags:
+      - setting
+  /api/public/categories:
+    get:
+      consumes:
+      - application/json
+      description: 获取图片分类
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片分类
+          schema:
+            type: string
+      summary: 获取图片分类
+      tags:
+      - category
+  /api/public/categories/{name}:
+    get:
+      consumes:
+      - application/json
+      description: 根据分类名获取图片
+      parameters:
+      - description: 分类名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片内容
+          schema:
+            type: string
+      summary: 根据分类名获取图片
+      tags:
+      - category
+  /api/public/images:
+    get:
+      consumes:
+      - application/json
+      description: 分页列出图片
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片列表
+          schema:
+            type: string
+      summary: 分页列出图片
+      tags:
+      - image
+  /api/public/images/{name}:
+    get:
+      consumes:
+      - application/json
+      description: 根据文件名获取图片
+      parameters:
+      - description: 文件名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片内容
+          schema:
+            type: string
+      summary: 根据文件名获取图片
+      tags:
+      - image
+  /api/public/login:
+    post:
+      consumes:
+      - application/json
+      description: 登录
+      parameters:
+      - description: 用户信息
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handles.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            type: string
+      summary: 登录
+      tags:
+      - auth
+  /api/public/random:
+    get:
+      consumes:
+      - application/json
+      description: 随机获取一个图片 支持分类
+      parameters:
+      - description: 分类
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片内容
+          schema:
+            type: string
+      summary: 随机获取一个图片 支持分类
+      tags:
+      - image
+  /api/public/settings:
+    get:
+      consumes:
+      - application/json
+      description: 获取公共设置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 公共设置
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取公共设置
+      tags:
+      - setting
+  /api/public/short/{short_link}:
+    get:
+      consumes:
+      - application/json
+      description: 根据短链获取图片
+      parameters:
+      - description: 短链
+        in: path
+        name: short_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片内容
+          schema:
+            type: string
+      summary: 根据短链获取图片
+      tags:
+      - image
+swagger: "2.0"
