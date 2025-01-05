@@ -15,6 +15,13 @@ definitions:
       username:
         type: string
     type: object
+  handles.LoginResp:
+    properties:
+      expire:
+        type: string
+      token:
+        type: string
+    type: object
   model.SettingItem:
     properties:
       flag:
@@ -113,6 +120,11 @@ paths:
       - application/json
       description: 删除设置
       parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: key
         in: query
         name: key
@@ -129,6 +141,11 @@ paths:
       - application/json
       description: 获取设置
       parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: key
         in: query
         name: key
@@ -152,6 +169,11 @@ paths:
       - application/json
       description: 保存设置
       parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 设置
         in: body
         name: settings
@@ -171,6 +193,12 @@ paths:
       consumes:
       - application/json
       description: 重置token
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -187,6 +215,11 @@ paths:
       - application/json
       description: 列出设置
       parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: group
         in: query
         name: group
@@ -306,7 +339,7 @@ paths:
         "200":
           description: 登录成功
           schema:
-            type: string
+            $ref: '#/definitions/handles.LoginResp'
       summary: 登录
       tags:
       - auth

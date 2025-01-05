@@ -123,6 +123,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "key",
                         "name": "key",
                         "in": "query"
@@ -157,6 +164,13 @@ const docTemplate = `{
                 "summary": "保存设置",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "设置",
                         "name": "settings",
                         "in": "body",
@@ -186,6 +200,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "key",
                         "name": "key",
                         "in": "query",
@@ -208,6 +229,15 @@ const docTemplate = `{
                     "setting"
                 ],
                 "summary": "重置token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -232,6 +262,13 @@ const docTemplate = `{
                 ],
                 "summary": "列出设置",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "group",
@@ -410,7 +447,7 @@ const docTemplate = `{
                     "200": {
                         "description": "登录成功",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handles.LoginResp"
                         }
                     }
                 }
@@ -528,6 +565,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handles.LoginResp": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }

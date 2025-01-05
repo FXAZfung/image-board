@@ -2,6 +2,7 @@ package handles
 
 import (
 	"github.com/FXAZfung/go-cache"
+	conf "github.com/FXAZfung/image-board/internal/config"
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/server/common"
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,11 @@ import (
 type LoginReq struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type LoginResp struct {
+	Token  string    `json:"token"`
+	Expire time.Time `json:"expire"`
 }
 
 var loginCache = cache.NewMemCache[int]()
@@ -27,7 +33,7 @@ var (
 // @Accept json
 // @Produce json
 // @Param user body LoginReq true "用户信息"
-// @Success 200 {object} string "登录成功"
+// @Success 200 {object} LoginResp "登录成功"
 // @Router /api/public/login [post]
 func Login(c *gin.Context) {
 	var req LoginReq
@@ -66,6 +72,10 @@ func loginHash(c *gin.Context, req *LoginReq) {
 		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	common.SuccessResp(c, gin.H{"token": token})
+	resp := &LoginResp{
+		Token:  token,
+		Expire: time.Now().Add(time.Duration(conf.Conf.TokenExpiresIn) * time.Hour),
+	}
+	common.SuccessResp(c, resp)
 	loginCache.Del(ip)
 }

@@ -112,6 +112,13 @@
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "key",
                         "name": "key",
                         "in": "query"
@@ -146,6 +153,13 @@
                 "summary": "保存设置",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "设置",
                         "name": "settings",
                         "in": "body",
@@ -175,6 +189,13 @@
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "key",
                         "name": "key",
                         "in": "query",
@@ -197,6 +218,15 @@
                     "setting"
                 ],
                 "summary": "重置token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -221,6 +251,13 @@
                 ],
                 "summary": "列出设置",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "group",
@@ -399,7 +436,7 @@
                     "200": {
                         "description": "登录成功",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handles.LoginResp"
                         }
                     }
                 }
@@ -517,6 +554,17 @@
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handles.LoginResp": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }
