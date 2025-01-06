@@ -22,6 +22,17 @@ definitions:
       token:
         type: string
     type: object
+  model.Category:
+    properties:
+      id:
+        type: integer
+      is_public:
+        type: boolean
+      is_random:
+        type: boolean
+      name:
+        type: string
+    type: object
   model.SettingItem:
     properties:
       flag:
@@ -74,9 +85,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: 创建成功
+          description: 分类
           schema:
-            type: string
+            $ref: '#/definitions/model.Category'
       summary: 创建分类
       tags:
       - category
@@ -84,7 +95,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: 上传图片
+      description: 批量上传图片
       parameters:
       - description: Token
         in: header
@@ -93,13 +104,9 @@ paths:
         type: string
       - description: 图片
         in: formData
-        name: image
+        name: images
         required: true
         type: file
-      - description: 自定义短链
-        in: formData
-        name: short_link
-        type: string
       - description: 分类
         in: formData
         name: category
@@ -108,10 +115,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: 图片上传成功
+          description: 短链
           schema:
             type: string
-      summary: 上传图片
+      summary: 批量上传图片
       tags:
       - auth
   /api/private/setting:
@@ -249,9 +256,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: 图片分类
+          description: 分类列表
           schema:
-            type: string
+            items:
+              $ref: '#/definitions/model.Category'
+            type: array
       summary: 获取图片分类
       tags:
       - category
@@ -270,9 +279,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: 图片内容
+          description: 分类
           schema:
-            type: string
+            $ref: '#/definitions/model.Category'
       summary: 根据分类名获取图片
       tags:
       - category

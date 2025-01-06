@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/google/uuid"
 	"math/big"
+	"strings"
 )
 
 const letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -21,6 +22,20 @@ func String(n int) string {
 	return string(b)
 }
 
+func UUID() string {
+	return uuid.NewString()
+}
+
+// RandomizeFileName 获取原文件名后进行随机化处理保留文件格式
+func RandomizeFileName(fileName string) string {
+	// 获取文件名后缀
+	suffix := fileName[strings.LastIndex(fileName, "."):]
+	// 获取文件名前缀
+	prefix := fileName[:strings.LastIndex(fileName, ".")]
+	// 随机化文件名
+	return prefix + "-" + String(8) + suffix
+}
+
 func SecretKey() string {
-	return "image-board-" + uuid.NewString() + String(64)
+	return "IM-" + uuid.NewString() + String(64)
 }

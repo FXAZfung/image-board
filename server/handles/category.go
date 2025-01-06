@@ -20,7 +20,7 @@ type CategoryReq struct {
 // @Tags category
 // @Accept json
 // @Produce json
-// @Success 200 {object} string "图片分类"
+// @Success 200 {object} []model.Category "分类列表"
 // @Router /api/public/categories [get]
 func GetCategories(c *gin.Context) {
 	categories, err := op.GetCategories()
@@ -28,7 +28,7 @@ func GetCategories(c *gin.Context) {
 		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to retrieve categories")
 		return
 	}
-	common.SuccessResp(c, gin.H{"categories": categories})
+	common.SuccessResp(c, categories)
 }
 
 // GetCategoryByName 根据分类名获取图片
@@ -38,7 +38,7 @@ func GetCategories(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param name path string true "分类名"
-// @Success 200 {object} string "图片内容"
+// @Success 200 {object} model.Category "分类"
 // @Router /api/public/categories/{name} [get]
 func GetCategoryByName(c *gin.Context) {
 	name := c.Param("name")
@@ -48,7 +48,7 @@ func GetCategoryByName(c *gin.Context) {
 		common.ErrorStrResp(c, http.StatusNotFound, "Category not found")
 		return
 	}
-	common.SuccessResp(c, gin.H{"category": category})
+	common.SuccessResp(c, category)
 }
 
 // CreateCategory 创建分类
@@ -59,7 +59,7 @@ func GetCategoryByName(c *gin.Context) {
 // @Produce json
 // @param Authorization header string true "Authorization"
 // @Param category body CategoryReq true "分类信息"
-// @Success 200 {object} string "创建成功"
+// @Success 200 {object} model.Category "分类"
 // @Router /api/auth/categories [post]
 func CreateCategory(c *gin.Context) {
 	var req CategoryReq
@@ -77,5 +77,5 @@ func CreateCategory(c *gin.Context) {
 		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to create category")
 		return
 	}
-	common.SuccessResp(c, gin.H{"category": item})
+	common.SuccessResp(c, item)
 }

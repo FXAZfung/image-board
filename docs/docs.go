@@ -48,9 +48,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "创建成功",
+                        "description": "分类",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.Category"
                         }
                     }
                 }
@@ -58,7 +58,7 @@ const docTemplate = `{
         },
         "/api/auth/upload": {
             "post": {
-                "description": "上传图片",
+                "description": "批量上传图片",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -68,7 +68,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "上传图片",
+                "summary": "批量上传图片",
                 "parameters": [
                     {
                         "type": "string",
@@ -80,15 +80,9 @@ const docTemplate = `{
                     {
                         "type": "file",
                         "description": "图片",
-                        "name": "image",
+                        "name": "images",
                         "in": "formData",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "自定义短链",
-                        "name": "short_link",
-                        "in": "formData"
                     },
                     {
                         "type": "string",
@@ -99,7 +93,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "图片上传成功",
+                        "description": "短链",
                         "schema": {
                             "type": "string"
                         }
@@ -310,9 +304,12 @@ const docTemplate = `{
                 "summary": "获取图片分类",
                 "responses": {
                     "200": {
-                        "description": "图片分类",
+                        "description": "分类列表",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Category"
+                            }
                         }
                     }
                 }
@@ -342,9 +339,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "图片内容",
+                        "description": "分类",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.Category"
                         }
                     }
                 }
@@ -576,6 +573,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "is_random": {
+                    "type": "boolean"
+                },
+                "name": {
                     "type": "string"
                 }
             }

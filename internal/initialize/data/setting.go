@@ -80,13 +80,13 @@ func InitialSettings() []model.SettingItem {
 	}
 	initialSettingItems = []model.SettingItem{
 		// site settings
-		{Key: conf.VERSION, Value: conf.VERSION, Type: conf.TypeString, Group: model.SITE, Flag: model.READONLY},
+		{Key: conf.VERSION, Value: "0.0.1", Type: conf.TypeString, Group: model.SITE, Flag: model.READONLY},
 		//{Key: conf.ApiUrl, Value: "", Type: conf.TypeString, Group: model.SITE},
 		//{Key: conf.BasePath, Value: "", Type: conf.TypeString, Group: model.SITE},
-		{Key: conf.SiteTitle, Value: "Image Board", Type: conf.TypeString, Group: model.SITE},
-		{Key: conf.Announcement, Value: "### repo\nhttps://github.com/FXAZfung/image-board", Type: conf.TypeText, Group: model.SITE},
+		{Key: conf.SiteTitle, Value: "IM 图床", Type: conf.TypeString, Group: model.SITE},
+		{Key: conf.Announcement, Value: "https://github.com/FXAZfung/image-board", Type: conf.TypeText, Group: model.SITE},
 		{Key: "pagination_type", Value: "all", Type: conf.TypeSelect, Options: "all,pagination,load_more,auto_load_more", Group: model.SITE},
-		{Key: "default_page_size", Value: "20", Type: conf.TypeNumber, Group: model.SITE},
+		{Key: "default_page_size", Value: "10", Type: conf.TypeNumber, Group: model.SITE},
 		//{Key: conf.AllowIndexed, Value: "false", Type: conf.TypeBool, Group: model.SITE},
 		//{Key: conf.AllowMounted, Value: "true", Type: conf.TypeBool, Group: model.SITE},
 		{Key: conf.RobotsTxt, Value: "User-agent: *\nAllow: /", Type: conf.TypeText, Group: model.SITE},
@@ -95,18 +95,18 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.Favicon, Value: "🏠", Type: conf.TypeString, Group: model.STYLE},
 		//{Key: conf.MainColor, Value: "#1890ff", Type: conf.TypeString, Group: model.STYLE},
 		{Key: "home_icon", Value: "🏠", Type: conf.TypeString, Group: model.STYLE},
-		{Key: "home_container", Value: "max_980px", Type: conf.TypeSelect, Options: "max_980px,hope_container", Group: model.STYLE},
-		{Key: "settings_layout", Value: "list", Type: conf.TypeSelect, Options: "list,responsive", Group: model.STYLE},
+		//{Key: "home_container", Value: "max_980px", Type: conf.TypeSelect, Options: "max_980px,hope_container", Group: model.STYLE},
+		//{Key: "settings_layout", Value: "list", Type: conf.TypeSelect, Options: "list,responsive", Group: model.STYLE},
 		// preview settings
 
-		{Key: conf.ImageTypes, Value: "jpg,tiff,jpeg,png,gif,bmp,svg,ico,swf,webp", Type: conf.TypeText, Group: model.PREVIEW, Flag: model.PRIVATE},
+		//{Key: conf.ImageTypes, Value: "jpg,tiff,jpeg,png,gif,bmp,svg,ico,swf,webp", Type: conf.TypeText, Group: model.PREVIEW, Flag: model.PRIVATE},
 
-		{Key: "package_download", Value: "true", Type: conf.TypeBool, Group: model.GLOBAL},
-		{Key: conf.PrivacyRegs, Value: `(?:(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])
-([[:xdigit:]]{1,4}(?::[[:xdigit:]]{1,4}){7}|::|:(?::[[:xdigit:]]{1,4}){1,6}|[[:xdigit:]]{1,4}:(?::[[:xdigit:]]{1,4}){1,5}|(?:[[:xdigit:]]{1,4}:){2}(?::[[:xdigit:]]{1,4}){1,4}|(?:[[:xdigit:]]{1,4}:){3}(?::[[:xdigit:]]{1,4}){1,3}|(?:[[:xdigit:]]{1,4}:){4}(?::[[:xdigit:]]{1,4}){1,2}|(?:[[:xdigit:]]{1,4}:){5}:[[:xdigit:]]{1,4}|(?:[[:xdigit:]]{1,4}:){1,6}:)
-(?U)access_token=(.*)&`,
-			Type: conf.TypeText, Group: model.GLOBAL, Flag: model.PRIVATE},
-		{Key: conf.FilenameCharMapping, Value: `{"/": "|"}`, Type: conf.TypeText, Group: model.GLOBAL},
+		//{Key: "package_download", Value: "true", Type: conf.TypeBool, Group: model.GLOBAL},
+		//		{Key: conf.PrivacyRegs, Value: `(?:(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])
+		//([[:xdigit:]]{1,4}(?::[[:xdigit:]]{1,4}){7}|::|:(?::[[:xdigit:]]{1,4}){1,6}|[[:xdigit:]]{1,4}:(?::[[:xdigit:]]{1,4}){1,5}|(?:[[:xdigit:]]{1,4}:){2}(?::[[:xdigit:]]{1,4}){1,4}|(?:[[:xdigit:]]{1,4}:){3}(?::[[:xdigit:]]{1,4}){1,3}|(?:[[:xdigit:]]{1,4}:){4}(?::[[:xdigit:]]{1,4}){1,2}|(?:[[:xdigit:]]{1,4}:){5}:[[:xdigit:]]{1,4}|(?:[[:xdigit:]]{1,4}:){1,6}:)
+		//(?U)access_token=(.*)&`,
+		//			Type: conf.TypeText, Group: model.GLOBAL, Flag: model.PRIVATE},
+		//		{Key: conf.FilenameCharMapping, Value: `{"/": "|"}`, Type: conf.TypeText, Group: model.GLOBAL},
 
 		// single settings
 		{Key: conf.Token, Value: token, Type: conf.TypeString, Group: model.SINGLE, Flag: model.PRIVATE},
