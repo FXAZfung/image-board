@@ -3,6 +3,7 @@ package data
 import (
 	"github.com/FXAZfung/image-board/cmd/flags"
 	conf "github.com/FXAZfung/image-board/internal/config"
+	"github.com/FXAZfung/image-board/internal/db"
 	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/pkg/random"
@@ -20,17 +21,20 @@ func initSettings() {
 	if err != nil {
 		utils.Log.Fatalf("failed get settings: %+v", err)
 	}
-	for i := range settings {
-		if !isActive(settings[i].Key) && settings[i].Flag != model.DEPRECATED {
-			settings[i].Flag = model.DEPRECATED
-			err = op.SaveSettingItem(&settings[i])
+	settingMap := map[string]*model.SettingItem{}
+	for _, v := range settings {
+		if !isActive(v.Key) && v.Flag != model.DEPRECATED {
+			v.Flag = model.DEPRECATED
+			err = op.SaveSettingItem(&v)
 			if err != nil {
 				utils.Log.Fatalf("failed save setting: %+v", err)
 			}
 		}
+		settingMap[v.Key] = &v
 	}
 
 	// create or save setting
+	save := false
 	for i := range initialSettingItems {
 		item := &initialSettingItems[i]
 		item.Index = uint(i)
@@ -38,26 +42,33 @@ func initSettings() {
 			item.PreDefault = item.Value
 		}
 		// err
-		stored, err := op.GetSettingItemByKey(item.Key)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Log.Fatalf("failed get setting: %+v", err)
-			continue
+		stored, ok := settingMap[item.Key]
+		if !ok {
+			stored, err = op.GetSettingItemByKey(item.Key)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				utils.Log.Fatalf("failed get setting: %+v", err)
+				continue
+			}
 		}
-		// save
 		if stored != nil && item.Key != conf.VERSION && stored.Value != item.PreDefault {
 			item.Value = stored.Value
 		}
+		_, err = op.HandleSettingItemHook(item)
+		if err != nil {
+			utils.Log.Errorf("failed to execute hook on %s: %+v", item.Key, err)
+			continue
+		}
+		// save
 		if stored == nil || *item != *stored {
-			err = op.SaveSettingItem(item)
-			if err != nil {
-				utils.Log.Fatalf("failed save setting: %+v", err)
-			}
+			save = true
+		}
+	}
+	if save {
+		err = db.SaveSettingItems(initialSettingItems)
+		if err != nil {
+			utils.Log.Fatalf("failed save setting: %+v", err)
 		} else {
-			// Not save so needs to execute hook
-			_, err = op.HandleSettingItemHook(item)
-			if err != nil {
-				utils.Log.Errorf("failed to execute hook on %s: %+v", item.Key, err)
-			}
+			op.SettingCacheUpdate()
 		}
 	}
 }
@@ -94,7 +105,7 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.Logo, Value: "🏠", Type: conf.TypeText, Group: model.STYLE},
 		{Key: conf.Favicon, Value: "🏠", Type: conf.TypeString, Group: model.STYLE},
 		//{Key: conf.MainColor, Value: "#1890ff", Type: conf.TypeString, Group: model.STYLE},
-		{Key: "home_icon", Value: "🏠", Type: conf.TypeString, Group: model.STYLE},
+		//{Key: "home_icon", Value: "🏠", Type: conf.TypeString, Group: model.STYLE},
 		//{Key: "home_container", Value: "max_980px", Type: conf.TypeSelect, Options: "max_980px,hope_container", Group: model.STYLE},
 		//{Key: "settings_layout", Value: "list", Type: conf.TypeSelect, Options: "list,responsive", Group: model.STYLE},
 		// preview settings

@@ -7,7 +7,6 @@ import (
 	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/pkg/random"
-	"github.com/FXAZfung/image-board/pkg/utils"
 	"github.com/FXAZfung/image-board/server/common"
 	"image"
 	_ "image/gif"
@@ -188,7 +187,7 @@ func UploadImage(c *gin.Context) {
 	// 检查是否有自定义短链
 	customShortLink := c.PostForm("short_link")
 	if customShortLink == "" {
-		customShortLink = utils.GenerateShortLink(file.Filename)
+		customShortLink = random.String(6)
 	} else {
 		// 检查短链是否唯一
 		existing, _ := op.GetImageByShortLink(customShortLink)
@@ -277,7 +276,7 @@ func UploadImages(c *gin.Context) {
 		// 检查是否有自定义短链
 		customShortLink := c.PostForm("short_link")
 		if customShortLink == "" {
-			customShortLink = utils.GenerateShortLink(file.Filename)
+			customShortLink = random.String(6)
 		} else {
 			// 检查短链是否唯一
 			existing, _ := op.GetImageByShortLink(customShortLink)
