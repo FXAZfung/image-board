@@ -28,6 +28,11 @@ var (
 	imageTimes    = 15
 )
 
+type ImageDeleteReq struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
 // GetImageByName 根据文件名获取图片
 //
 //	@Summary		根据文件名获取图片
@@ -137,6 +142,24 @@ func GetImageByShortLink(c *gin.Context) {
 	}
 
 	c.File(imageData.Path)
+}
+
+// ReloadImages 重新从磁盘加载图片同时更新数据库
+// @Summary 重新从磁盘加载图片同时更新数据库
+// @Description 重新从磁盘加载图片同时更新数据库
+// @Tags image
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Token"
+// @Success 200 {string} "成功"
+// @Router /api/private/reload [get]
+func ReloadImages(c *gin.Context) {
+	err := op.ReloadImages()
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to reload images")
+		return
+	}
+	common.SuccessResp(c)
 }
 
 // UploadImage 上传图片

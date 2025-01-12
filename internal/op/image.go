@@ -2,9 +2,11 @@ package op
 
 import (
 	"github.com/FXAZfung/go-cache"
+	"github.com/FXAZfung/image-board/internal/config"
 	"github.com/FXAZfung/image-board/internal/db"
 	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/FXAZfung/image-board/pkg/singleflight"
+	"github.com/FXAZfung/image-board/pkg/utils"
 	"os"
 	"time"
 )
@@ -67,4 +69,17 @@ func GetRandomImage(category string) (*model.Image, error) {
 		return nil, err
 	}
 	return image, nil
+}
+
+// ReloadImages 重新从磁盘加载图片同时更新数据库
+func ReloadImages() error {
+	// 扫描磁盘
+	images := utils.ScanDir(config.Conf.DataImage.Dir)
+	// 如果数据库中没有的图片则添加
+
+	// 如果数据库中有但磁盘中没有的图片则删除
+
+	// 如果数据库中有且磁盘中也有的图片则更新
+
+	return nil
 }

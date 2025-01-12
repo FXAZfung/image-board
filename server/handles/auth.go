@@ -79,3 +79,22 @@ func loginHash(c *gin.Context, req *LoginReq) {
 	common.SuccessResp(c, resp)
 	loginCache.Del(ip)
 }
+
+// Logout 登出
+// @Summary 登出
+// @Description 登出
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Token"
+// @Success 200 {string} "登出成功"
+// @Router /api/auth/logout [get]
+func Logout(c *gin.Context) {
+	err := common.InvalidateToken(c.GetHeader("Authorization"))
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		return
+	} else {
+		common.SuccessResp(c)
+	}
+}

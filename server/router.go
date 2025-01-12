@@ -34,6 +34,7 @@ func Init(router *gin.Engine) {
 	auth.Use(middleware.AuthMiddleware)
 	auth.POST("/upload", handles.UploadImage)
 	auth.POST("/categories", handles.CreateCategory)
+	auth.GET("/logout", handles.Logout)
 
 	// 私有接口
 	private := api.Group("/private")

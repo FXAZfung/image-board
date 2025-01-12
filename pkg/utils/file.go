@@ -30,3 +30,36 @@ func CreateNestedDirectory(path string) error {
 	}
 	return err
 }
+
+// ScanDir 扫描目录下的所有文件
+func ScanDir(path string) []string {
+	var files []string
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("scan dir error: %s", err)
+	}
+	return files
+}
+
+// RemoveFile 删除文件
+func RemoveFile(path string) error {
+	err := os.Remove(path)
+	if err != nil {
+		log.Errorf("remove file error: %s", err)
+	}
+	return err
+}
+
+// RemoveAll 删除文件夹
+func RemoveAll(path string) error {
+	err := os.RemoveAll(path)
+	if err != nil {
+		log.Errorf("remove all error: %s", err)
+	}
+	return err
+}
