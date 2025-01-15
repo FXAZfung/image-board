@@ -40,7 +40,7 @@ func (u *User) ValidatePwdStaticHash(password string) error {
 	//}
 	err := utils.ComparePassword(u.PwdHash, password)
 	if err != nil {
-		return errors.WithStack(errs.WrongPassword)
+		return errors.WithStack(errs.ErrUserPassword)
 	}
 	return nil
 }

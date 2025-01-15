@@ -56,6 +56,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/logout": {
+            "get": {
+                "description": "登出",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "登出",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "登出成功",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/upload": {
             "post": {
                 "description": "批量上传图片",
@@ -91,14 +123,7 @@ const docTemplate = `{
                         "in": "formData"
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "短链",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
+                "responses": {}
             }
         },
         "/api/private/setting": {
@@ -289,6 +314,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/private/users": {
+            "post": {
+                "description": "列出用户列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "列出用户列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "分类信息",
+                        "name": "page",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.PageResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/public/categories": {
             "get": {
                 "description": "获取图片分类",
@@ -411,6 +477,29 @@ const docTemplate = `{
                         "description": "图片内容",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/info": {
+            "get": {
+                "description": "获取信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "info"
+                ],
+                "summary": "获取信息",
+                "responses": {
+                    "200": {
+                        "description": "信息",
+                        "schema": {
+                            "$ref": "#/definitions/handles.InfoResp"
                         }
                     }
                 }
@@ -541,6 +630,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "common.PageResp": {
+            "type": "object",
+            "properties": {
+                "content": {},
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "handles.CategoryReq": {
             "type": "object",
             "properties": {
@@ -552,6 +650,23 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "handles.InfoResp": {
+            "type": "object",
+            "properties": {
+                "category_count": {
+                    "type": "integer"
+                },
+                "image_count": {
+                    "type": "integer"
+                },
+                "storage_usage": {
+                    "type": "integer"
+                },
+                "user_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -591,6 +706,17 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "model.PageReq": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
                 }
             }
         },

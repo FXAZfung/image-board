@@ -74,3 +74,12 @@ func SaveCategory(item *model.Category) (err error) {
 	categoryCacheUpdate()
 	return nil
 }
+
+// GetCategoryCount 获取分类总数
+func GetCategoryCount() (int64, error) {
+	count, err := db.GetCategoryCount()
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

@@ -63,3 +63,32 @@ func RemoveAll(path string) error {
 	}
 	return err
 }
+
+// GetStorageUsage 获取存储使用情况
+func GetStorageUsage(path string) (int64, error) {
+
+	// 检查路径是否存在
+	info, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+
+	// 如果是文件，直接返回文件大小
+	if !info.IsDir() {
+		return info.Size(), nil
+	}
+
+	// 如果是目录，递归计算目录大小
+	var totalSize int64
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			totalSize += info.Size()
+		}
+		return nil
+	})
+
+	return totalSize, err
+}

@@ -38,3 +38,25 @@ func UpdateUser(u *model.User) error {
 func CreateUser(u *model.User) error {
 	return errors.WithStack(db.Create(u).Error)
 }
+
+// GetUserCount 获取用户数量
+func GetUserCount() (int64, error) {
+	var count int64
+	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
+		return 0, errors.Wrapf(err, "failed get user count")
+	}
+	return count, nil
+}
+
+// GetUsers 分页获取用户
+func GetUsers(pageIndex, pageSize int) ([]model.User, int64, error) {
+	var users []model.User
+	var count int64
+	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed get user count")
+	}
+	if err := db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed get users")
+	}
+	return users, count, nil
+}

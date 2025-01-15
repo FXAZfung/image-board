@@ -84,7 +84,7 @@ func DefaultConfig() *Config {
 		Database: Database{
 			Type:        "sqlite3",
 			Port:        0,
-			TablePrefix: "z_",
+			TablePrefix: "im_",
 			DBFile:      dbPath,
 		},
 		DataImage: DataImage{

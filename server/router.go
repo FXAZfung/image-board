@@ -28,6 +28,7 @@ func Init(router *gin.Engine) {
 	public.GET("/categories/:name", handles.GetCategoryByName)
 	public.GET("/random", handles.GetRandomImage)
 	public.GET("/settings", handles.PublicSettings)
+	public.GET("/info", handles.GetInfo)
 
 	// 需要登录的接口
 	auth := api.Group("/auth")
@@ -44,6 +45,7 @@ func Init(router *gin.Engine) {
 	private.GET("/settings", handles.ListSettings)
 	private.DELETE("/setting", handles.DeleteSetting)
 	private.POST("/setting/token", handles.ResetToken)
+	private.POST("/users", handles.ListUser)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

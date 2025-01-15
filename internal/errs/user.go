@@ -3,8 +3,11 @@ package errs
 import "errors"
 
 var (
-	EmptyUsername      = errors.New("username is empty")
-	EmptyPassword      = errors.New("password is empty")
-	WrongPassword      = errors.New("password is incorrect")
-	DeleteAdminOrGuest = errors.New("cannot delete admin or guest")
+	ErrEmptyUsername = errors.New("empty username")
+	ErrUserNotFound  = errors.New("user not found")
+	ErrUserExist     = errors.New("user exist")
+	ErrUserPassword  = errors.New("password error")
+	ErrUserAuth      = errors.New("auth error")
+	ErrUserRegister  = errors.New("register error")
+	ErrUserToken     = errors.New("token error")
 )

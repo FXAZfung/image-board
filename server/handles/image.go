@@ -144,23 +144,24 @@ func GetImageByShortLink(c *gin.Context) {
 	c.File(imageData.Path)
 }
 
-// ReloadImages 重新从磁盘加载图片同时更新数据库
-// @Summary 重新从磁盘加载图片同时更新数据库
-// @Description 重新从磁盘加载图片同时更新数据库
-// @Tags image
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Token"
-// @Success 200 {string} "成功"
-// @Router /api/private/reload [get]
-func ReloadImages(c *gin.Context) {
-	err := op.ReloadImages()
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to reload images")
-		return
-	}
-	common.SuccessResp(c)
-}
+//TODO
+//// ReloadImages 重新从磁盘加载图片同时更新数据库
+//// @Summary 重新从磁盘加载图片同时更新数据库
+//// @Description 重新从磁盘加载图片同时更新数据库
+//// @Tags image
+//// @Accept json
+//// @Produce json
+//// @Param Authorization header string true "Token"
+//// @Success 200 {string} "成功"
+//// @Router /api/private/reload [get]
+//func ReloadImages(c *gin.Context) {
+//	err := op.ReloadImages()
+//	if err != nil {
+//		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to reload images")
+//		return
+//	}
+//	common.SuccessResp(c)
+//}
 
 // UploadImage 上传图片
 // @Summary 上传图片
@@ -253,7 +254,6 @@ func UploadImage(c *gin.Context) {
 // @Param Authorization header string true "Token"
 // @Param images formData file true "图片"
 // @Param category formData string false "分类"
-// @Success 200 {object} string "短链"
 // @Router /api/auth/upload [post]
 func UploadImages(c *gin.Context) {
 	form, err := c.MultipartForm()
@@ -268,23 +268,27 @@ func UploadImages(c *gin.Context) {
 		return
 	}
 
-	category := strings.ToLower(c.PostForm("category"))
+	// 限制最大上传文件数为10
+	if len(files) > 10 {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Maximum 10 files allowed")
+		return
+	}
+
+	category := c.PostForm("category")
 
 	for _, file := range files {
-		// 读取文件内容
+		// 将文件挨个保存
 		f, err := file.Open()
 		if err != nil {
 			common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file")
-			return
+			return // 有一个文件读取失败就返回
 		}
 		defer f.Close()
-
 		data, err := io.ReadAll(f)
 		if err != nil {
 			common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file content")
 			return
 		}
-
 		// 获取图片宽高
 		img, _, err := image.Decode(bytes.NewReader(data))
 		if err != nil {
@@ -294,28 +298,19 @@ func UploadImages(c *gin.Context) {
 		width := img.Bounds().Dx()
 		height := img.Bounds().Dy()
 
-		// 对上传的文件名进行处理
-
-		// 检查是否有自定义短链
-		customShortLink := c.PostForm("short_link")
-		if customShortLink == "" {
-			customShortLink = random.String(6)
-		} else {
-			// 检查短链是否唯一
-			existing, _ := op.GetImageByShortLink(customShortLink)
-			if existing != nil {
-				common.ErrorStrResp(c, http.StatusConflict, "Custom short link already exists")
-				return
-			}
-		}
+		// 对上传的图片的文件名进行处理
+		file.Filename = random.RandomizeFileName(file.Filename)
 
 		targetFilePath := path.Join(config.Conf.DataImage.Dir, category, file.Filename)
 
 		imageData := &model.Image{
-			FileName:  file.Filename,
-			Width:     width,
-			Height:    height,
-			ShortLink: customShortLink,
+			FileName:    file.Filename,
+			Width:       width,
+			Height:      height,
+			ShortLink:   random.String(6),
+			Path:        targetFilePath,
+			ContentType: file.Header.Get("Content-Type"),
+			Category:    category,
 		}
 		// 保存图片到数据库
 		err = op.CreateImage(imageData, data, targetFilePath)
@@ -324,5 +319,5 @@ func UploadImages(c *gin.Context) {
 			return
 		}
 	}
-
+	common.SuccessResp(c, "Uploads successful")
 }

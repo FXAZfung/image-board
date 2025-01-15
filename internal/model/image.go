@@ -8,6 +8,7 @@ type Image struct {
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	FileName    string    `json:"file_name" gorm:"unique;not null"`
 	ContentType string    `json:"content_type"`
+	Size        int64     `json:"size"`
 	Path        string    `json:"path" gorm:"not null"`     // 图片路径
 	Category    string    `json:"category" gorm:"not null"` // 分类
 	Width       int       `json:"width"`

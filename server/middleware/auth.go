@@ -13,6 +13,7 @@ import (
 
 func AuthMiddleware(c *gin.Context) {
 	token := c.GetHeader("Authorization")
+	// 判断使用的是admin token还是普通token
 	if subtle.ConstantTimeCompare([]byte(token), []byte(setting.GetStr(config.Token))) == 1 {
 		admin, err := op.GetAdmin()
 		if err != nil {
@@ -25,6 +26,7 @@ func AuthMiddleware(c *gin.Context) {
 		c.Next()
 		return
 	}
+	// 判断是否使用的是空token
 	if token == "" {
 		guest, err := op.GetGuest()
 		if err != nil {
@@ -42,6 +44,7 @@ func AuthMiddleware(c *gin.Context) {
 		c.Next()
 		return
 	}
+	// 获取用户信息
 	userClaims, err := common.ParseToken(token)
 	if err != nil {
 		common.ErrorStrResp(c, http.StatusUnauthorized, err.Error())

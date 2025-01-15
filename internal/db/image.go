@@ -41,6 +41,15 @@ func CreateImage(image *model.Image) error {
 	return nil
 }
 
+// GetImageCount 获取图片总数
+func GetImageCount() (int64, error) {
+	var count int64
+	if err := db.Model(&model.Image{}).Count(&count).Error; err != nil {
+		return 0, errors.WithStack(errs.ImageNotFound)
+	}
+	return count, nil
+}
+
 // GetRandomImage 随机获取一个图片
 func GetRandomImage(category string) (*model.Image, error) {
 	image := model.Image{}

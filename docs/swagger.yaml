@@ -1,4 +1,10 @@
 definitions:
+  common.PageResp:
+    properties:
+      content: {}
+      total:
+        type: integer
+    type: object
   handles.CategoryReq:
     properties:
       is_public:
@@ -7,6 +13,17 @@ definitions:
         type: boolean
       name:
         type: string
+    type: object
+  handles.InfoResp:
+    properties:
+      category_count:
+        type: integer
+      image_count:
+        type: integer
+      storage_usage:
+        type: integer
+      user_count:
+        type: integer
     type: object
   handles.LoginReq:
     properties:
@@ -32,6 +49,13 @@ definitions:
         type: boolean
       name:
         type: string
+    type: object
+  model.PageReq:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
     type: object
   model.SettingItem:
     properties:
@@ -91,6 +115,27 @@ paths:
       summary: 创建分类
       tags:
       - category
+  /api/auth/logout:
+    get:
+      consumes:
+      - application/json
+      description: 登出
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登出成功
+          schema:
+            type: string
+      summary: 登出
+      tags:
+      - auth
   /api/auth/upload:
     post:
       consumes:
@@ -113,11 +158,7 @@ paths:
         type: string
       produces:
       - application/json
-      responses:
-        "200":
-          description: 短链
-          schema:
-            type: string
+      responses: {}
       summary: 批量上传图片
       tags:
       - auth
@@ -247,6 +288,33 @@ paths:
       summary: 列出设置
       tags:
       - setting
+  /api/private/users:
+    post:
+      consumes:
+      - application/json
+      description: 列出用户列表
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 分类信息
+        in: body
+        name: page
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.PageResp'
+      summary: 列出用户列表
+      tags:
+      - user
   /api/public/categories:
     get:
       consumes:
@@ -330,6 +398,21 @@ paths:
       summary: 根据文件名获取图片
       tags:
       - image
+  /api/public/info:
+    get:
+      consumes:
+      - application/json
+      description: 获取信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 信息
+          schema:
+            $ref: '#/definitions/handles.InfoResp'
+      summary: 获取信息
+      tags:
+      - info
   /api/public/login:
     post:
       consumes:

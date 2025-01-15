@@ -36,9 +36,18 @@ func GetGuest() (*model.User, error) {
 	return guestUser, nil
 }
 
+// GetUsers 分页获取用户
+func GetUsers(page, perPage int) ([]model.User, int64, error) {
+	users, total, err := db.GetUsers(page, perPage)
+	if err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}
+
 func GetUserByName(username string) (*model.User, error) {
 	if username == "" {
-		return nil, errs.EmptyUsername
+		return nil, errs.ErrEmptyUsername
 	}
 	if user, ok := userCache.Get(username); ok {
 		return user, nil
@@ -66,4 +75,13 @@ func UpdateUser(u *model.User) error {
 func CreateUser(u *model.User) error {
 	userCache.Del(u.Username)
 	return db.CreateUser(u)
+}
+
+// GetUserCount 获取用户总数
+func GetUserCount() (int64, error) {
+	count, err := db.GetUserCount()
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
