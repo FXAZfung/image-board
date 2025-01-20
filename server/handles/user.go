@@ -21,14 +21,14 @@ import (
 func ListUser(c *gin.Context) {
 	var req model.PageReq
 	if err := c.ShouldBind(&req); err != nil {
-		common.ErrorStrResp(c, 400, err.Error())
+		common.ErrorResp(c, 400, err)
 		return
 	}
 	req.Validate()
 	log.Debugf("%+v", req)
 	users, total, err := op.GetUsers(req.Page, req.PerPage)
 	if err != nil {
-		common.ErrorStrResp(c, 500, err.Error())
+		common.ErrorResp(c, 500, err)
 		return
 	}
 	common.SuccessResp(c, common.PageResp{
@@ -37,16 +37,20 @@ func ListUser(c *gin.Context) {
 	})
 }
 
-// CreateUser 创建用户
-// @Summary 创建用户
-// @Description 创建用户
-// @Tags user
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Authorization"
-// @Param user body model.User true "用户信息"
-// @Success 200 {object} common.EmptyResp
-// @Router /api/private/user [post]
 func CreateUser(c *gin.Context) {
-
+	var req model.User
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, 400, err)
+		return
+	}
+	if req.IsGuest() || req.IsAdmin() {
+		common.ErrorStrResp(c, 400, "Can not create guest or admin user")
+		return
+	}
+	err := op.CreateUser(&req)
+	if err != nil {
+		common.ErrorResp(c, 500, err)
+		return
+	}
+	common.SuccessResp(c, req)
 }

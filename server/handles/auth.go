@@ -56,20 +56,20 @@ func loginHash(c *gin.Context, req *LoginReq) {
 	// check username
 	user, err := op.GetUserByName(req.Username)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		loginCache.Set(ip, count+1)
 		return
 	}
 	// validate password hash
 	if err := user.ValidatePwdStaticHash(req.Password); err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		loginCache.Set(ip, count+1)
 		return
 	}
 	// generate token
 	token, err := common.GenerateToken(user)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		return
 	}
 	resp := &LoginResp{
@@ -92,7 +92,7 @@ func loginHash(c *gin.Context, req *LoginReq) {
 func Logout(c *gin.Context) {
 	err := common.InvalidateToken(c.GetHeader("Authorization"))
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	} else {
 		common.SuccessResp(c, "Logout successfully")

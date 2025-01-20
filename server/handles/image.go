@@ -8,6 +8,7 @@ import (
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/pkg/random"
 	"github.com/FXAZfung/image-board/server/common"
+	log "github.com/sirupsen/logrus"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -15,7 +16,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -97,30 +97,27 @@ func GetRandomImage(c *gin.Context) {
 // @Tags image
 // @Accept json
 // @Produce json
-// @Param page query int false "页码"
-// @Param page_size query int false "每页数量"
-// @Success 200 {object} string "图片列表"
-// @Router /api/public/images [get]
+// @Param page body model.PageReq true "分页"
+// @Success 200 {object} common.PageResp "图片列表"
+// @Router /api/public/images [post]
 func ListImages(c *gin.Context) {
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil || page < 1 {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid page number")
+	var req model.PageReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		return
 	}
-
-	pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	if err != nil || pageSize < 1 {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid page size")
-		return
-	}
-
-	images, err := op.GetImagesByPage(page, pageSize)
+	log.Debugf("%+v", req)
+	req.Validate()
+	images, total, err := op.GetImagesByPage(req.Page, req.PerPage)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to retrieve images")
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	common.SuccessResp(c, images)
+	common.SuccessResp(c, common.PageResp{
+		Content: images,
+		Total:   total,
+	})
 }
 
 // GetImageByShortLink 根据短链获取图片

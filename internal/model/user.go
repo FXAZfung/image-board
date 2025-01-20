@@ -40,7 +40,7 @@ func (u *User) ValidatePwdStaticHash(password string) error {
 	//}
 	err := utils.ComparePassword(u.PwdHash, password)
 	if err != nil {
-		return errors.WithStack(errs.ErrUserPassword)
+		return errors.WithStack(errs.ErrUsernameOrPassword)
 	}
 	return nil
 }
@@ -48,4 +48,12 @@ func (u *User) ValidatePwdStaticHash(password string) error {
 func (u *User) SetPassword(pwd string) *User {
 	u.PwdHash, _ = utils.EncryptPassword(pwd)
 	return u
+}
+
+func (u *User) IsGuest() bool {
+	return u.Role == GUEST
+}
+
+func (u *User) IsAdmin() bool {
+	return u.Role == ADMIN
 }

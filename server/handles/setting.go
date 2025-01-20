@@ -27,7 +27,7 @@ func ResetToken(c *gin.Context) {
 	token := random.SecretKey()
 	item := model.SettingItem{Key: "token", Value: token, Type: conf.TypeString, Group: model.SINGLE, Flag: model.PRIVATE}
 	if err := op.SaveSettingItem(&item); err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	sign.Instance()
@@ -51,14 +51,14 @@ func GetSetting(c *gin.Context) {
 	if key != "" {
 		item, err := op.GetSettingItemByKey(key)
 		if err != nil {
-			common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+			common.ErrorResp(c, http.StatusBadRequest, err)
 			return
 		}
 		common.SuccessResp(c, item)
 	} else {
 		items, err := op.GetSettingItemInKeys(strings.Split(keys, ","))
 		if err != nil {
-			common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+			common.ErrorResp(c, http.StatusBadRequest, err)
 			return
 		}
 		common.SuccessResp(c, items)
@@ -77,11 +77,11 @@ func GetSetting(c *gin.Context) {
 func SaveSettings(c *gin.Context) {
 	var req []model.SettingItem
 	if err := c.ShouldBind(&req); err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := op.SaveSettingItems(req); err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 	} else {
 		common.SuccessResp(c)
 		static.UpdateIndex()
@@ -125,7 +125,7 @@ func ListSettings(c *gin.Context) {
 		settings, err = op.GetSettingItemsInGroups(groups)
 	}
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, err.Error())
+		common.ErrorResp(c, http.StatusBadRequest, err)
 		return
 	}
 	common.SuccessResp(c, settings)
@@ -143,7 +143,7 @@ func ListSettings(c *gin.Context) {
 func DeleteSetting(c *gin.Context) {
 	key := c.Query("key")
 	if err := op.DeleteSettingItemByKey(key); err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	common.SuccessResp(c)

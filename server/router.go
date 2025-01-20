@@ -22,7 +22,7 @@ func Init(router *gin.Engine) {
 	public := api.Group("/public")
 	public.POST("/login", handles.Login)
 	public.GET("/images/:name", handles.GetImageByName)
-	public.GET("/images", handles.ListImages)
+	public.POST("/images", handles.ListImages)
 	public.GET("/short/:short_link", handles.GetImageByShortLink)
 	public.GET("/categories", handles.GetCategories)
 	public.GET("/categories/:name", handles.GetCategoryByName)

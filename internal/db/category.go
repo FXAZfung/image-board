@@ -21,7 +21,7 @@ func GetCategories() ([]*model.Category, error) {
 	var categories []*model.Category
 	err := db.Find(&categories).Error
 	if err != nil {
-		return nil, errors.WithStack(errs.ErrCategoryGet)
+		return nil, errors.WithStack(errs.ErrCategoryList)
 	}
 	return categories, nil
 }

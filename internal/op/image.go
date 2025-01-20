@@ -32,12 +32,12 @@ func GetImageByFileName(fileName string) (*model.Image, error) {
 	return image, err
 }
 
-func GetImagesByPage(page int, pageSize int) ([]*model.Image, error) {
-	images, err := db.GetImagesByPage(page, pageSize)
+func GetImagesByPage(pageIndex int, pageSize int) ([]*model.Image, int64, error) {
+	images, count, err := db.GetImagesByPage(pageIndex, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return images, nil
+	return images, count, nil
 }
 
 func GetImageByShortLink(shortLink string) (*model.Image, error) {

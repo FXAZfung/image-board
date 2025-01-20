@@ -414,7 +414,7 @@ const docTemplate = `{
             }
         },
         "/api/public/images": {
-            "get": {
+            "post": {
                 "description": "分页列出图片",
                 "consumes": [
                     "application/json"
@@ -428,23 +428,20 @@ const docTemplate = `{
                 "summary": "分页列出图片",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "页码",
+                        "description": "分页",
                         "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "page_size",
-                        "in": "query"
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageReq"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "图片列表",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/common.PageResp"
                         }
                     }
                 }

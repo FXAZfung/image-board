@@ -16,12 +16,16 @@ func GetImageByFilename(filename string) (*model.Image, error) {
 }
 
 // GetImagesByPage GetImages 分页获取图片
-func GetImagesByPage(page, pageSize int) ([]*model.Image, error) {
+func GetImagesByPage(page, pageSize int) ([]*model.Image, int64, error) {
 	var images []*model.Image
-	if err := db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&images).Error; err != nil {
-		return nil, errors.WithStack(errs.ImageNotFound)
+	var count int64
+	if err := db.Model(&model.Image{}).Count(&count).Error; err != nil {
+		return nil, 0, errors.WithStack(errs.ErrImageCount)
 	}
-	return images, nil
+	if err := db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&images).Error; err != nil {
+		return nil, 0, errors.WithStack(errs.ErrImageList)
+	}
+	return images, count, nil
 }
 
 // GetImageByShortLink 根据短链获取图片
@@ -45,7 +49,7 @@ func CreateImage(image *model.Image) error {
 func GetImageCount() (int64, error) {
 	var count int64
 	if err := db.Model(&model.Image{}).Count(&count).Error; err != nil {
-		return 0, errors.WithStack(errs.ImageNotFound)
+		return 0, errors.WithStack(errs.ErrImageCount)
 	}
 	return count, nil
 }

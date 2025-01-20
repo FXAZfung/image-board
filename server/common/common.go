@@ -17,9 +17,9 @@ func hidePrivacy(msg string) string {
 	return msg
 }
 
-//func ErrorResp(c *gin.Context, code int, err error, l ...bool) {
-//	ErrorWithDataResp(c, err, code, nil, l...)
-//}
+func ErrorResp(c *gin.Context, code int, err error, l ...bool) {
+	ErrorWithDataResp(c, code, nil, err, l...)
+}
 
 func ErrorWithDataResp(c *gin.Context, code int, data interface{}, err error, l ...bool) {
 	if len(l) > 0 && l[0] {
@@ -37,10 +37,13 @@ func ErrorWithDataResp(c *gin.Context, code int, data interface{}, err error, l 
 	c.Abort()
 }
 
-func ErrorStrResp(c *gin.Context, code int, str string) {
+func ErrorStrResp(c *gin.Context, code int, str string, l ...bool) {
+	if len(l) != 0 && l[0] {
+		log.Error(str)
+	}
 	c.JSON(200, Resp[interface{}]{
 		Code:    code,
-		Message: str,
+		Message: hidePrivacy(str),
 		Data:    nil,
 	})
 	c.Abort()

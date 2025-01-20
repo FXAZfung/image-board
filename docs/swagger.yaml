@@ -354,26 +354,24 @@ paths:
       tags:
       - category
   /api/public/images:
-    get:
+    post:
       consumes:
       - application/json
       description: 分页列出图片
       parameters:
-      - description: 页码
-        in: query
+      - description: 分页
+        in: body
         name: page
-        type: integer
-      - description: 每页数量
-        in: query
-        name: page_size
-        type: integer
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageReq'
       produces:
       - application/json
       responses:
         "200":
           description: 图片列表
           schema:
-            type: string
+            $ref: '#/definitions/common.PageResp'
       summary: 分页列出图片
       tags:
       - image

@@ -3,8 +3,9 @@ package errs
 import "errors"
 
 var (
-	EmptyImageName = errors.New("image name is empty")
-	EmptyImageType = errors.New("image type is empty")
 	ImageNotFound  = errors.New("image not found")
+	ErrImageList   = errors.New("image list error")
 	ImageSaveError = errors.New("image save error")
+	ErrImageDelete = errors.New("image delete error")
+	ErrImageCount  = errors.New("image count error")
 )

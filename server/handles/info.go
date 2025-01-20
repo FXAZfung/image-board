@@ -27,25 +27,25 @@ func GetInfo(c *gin.Context) {
 	// 获取总图片数
 	imageCount, err := op.GetImageCount()
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	// 获取分类数
 	categoryCount, err := op.GetCategoryCount()
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	// 获取存储空间使用情况
 	storage, err := op.GetStorageUsage(flags.DataDir)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	// 获取用户数
 	userCount, err := op.GetUserCount()
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
 	common.SuccessResp(c, InfoResp{

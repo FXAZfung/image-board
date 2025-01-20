@@ -3,5 +3,8 @@ package errs
 import "errors"
 
 var (
-	Internal = errors.New("internal error")
+	ErrInternal = errors.New("internal error")
+	ErrNotFound = errors.New("not found")
+	ErrInvalid  = errors.New("invalid")
+	ErrExist    = errors.New("exist")
 )
