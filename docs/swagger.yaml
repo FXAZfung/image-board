@@ -375,27 +375,6 @@ paths:
       summary: 分页列出图片
       tags:
       - image
-  /api/public/images/{name}:
-    get:
-      consumes:
-      - application/json
-      description: 根据文件名获取图片
-      parameters:
-      - description: 文件名
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 图片内容
-          schema:
-            type: string
-      summary: 根据文件名获取图片
-      tags:
-      - image
   /api/public/info:
     get:
       consumes:
@@ -433,7 +412,45 @@ paths:
       summary: 登录
       tags:
       - auth
-  /api/public/random:
+  /api/public/settings:
+    get:
+      consumes:
+      - application/json
+      description: 获取公共设置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 公共设置
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取公共设置
+      tags:
+      - setting
+  /images/image/{name}:
+    get:
+      consumes:
+      - application/json
+      description: 根据文件名获取图片
+      parameters:
+      - description: 文件名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片内容
+          schema:
+            type: string
+      summary: 根据文件名获取图片
+      tags:
+      - image
+  /images/image/random:
     get:
       consumes:
       - application/json
@@ -453,24 +470,7 @@ paths:
       summary: 随机获取一个图片 支持分类
       tags:
       - image
-  /api/public/settings:
-    get:
-      consumes:
-      - application/json
-      description: 获取公共设置
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 公共设置
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 获取公共设置
-      tags:
-      - setting
-  /api/public/short/{short_link}:
+  /images/image/short/{short_link}:
     get:
       consumes:
       - application/json

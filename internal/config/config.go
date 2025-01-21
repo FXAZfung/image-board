@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/FXAZfung/image-board/cmd/flags"
 	"github.com/FXAZfung/image-board/pkg/random"
-	"path/filepath"
+	"path"
 )
 
 type Database struct {
@@ -65,9 +65,9 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
-	logPath := filepath.Join(flags.DataDir, "log/log.log")
-	dbPath := filepath.Join(flags.DataDir, "images.db")
-	imagePath := filepath.Join(flags.DataDir, "images")
+	logPath := path.Join(flags.DataDir, "log/log.log")
+	dbPath := path.Join(flags.DataDir, "images.db")
+	imagePath := path.Join(flags.DataDir, "images")
 	// 默认设置
 	return &Config{
 		JwtSecret:      random.String(16),

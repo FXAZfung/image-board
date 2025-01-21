@@ -16,17 +16,19 @@ func Init(router *gin.Engine) {
 	Cors(router)
 
 	common.SecretKey = []byte(conf.Conf.JwtSecret)
+	// 图片接口
+	img := router.Group("/images")
+	img.GET("/image/:name", handles.GetImageByName)
+	img.GET("/image/random", handles.GetRandomImage)
+	img.GET("/image/short/:short_link", handles.GetImageByShortLink)
 
 	api := router.Group("/api")
 	// 不需要登录的接口
 	public := api.Group("/public")
 	public.POST("/login", handles.Login)
-	public.GET("/images/:name", handles.GetImageByName)
 	public.POST("/images", handles.ListImages)
-	public.GET("/short/:short_link", handles.GetImageByShortLink)
 	public.GET("/categories", handles.GetCategories)
 	public.GET("/categories/:name", handles.GetCategoryByName)
-	public.GET("/random", handles.GetRandomImage)
 	public.GET("/settings", handles.PublicSettings)
 	public.GET("/info", handles.GetInfo)
 

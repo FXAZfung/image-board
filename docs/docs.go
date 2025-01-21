@@ -447,38 +447,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/images/{name}": {
-            "get": {
-                "description": "根据文件名获取图片",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "image"
-                ],
-                "summary": "根据文件名获取图片",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "文件名",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "图片内容",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/api/public/info": {
             "get": {
                 "description": "获取信息",
@@ -536,7 +504,33 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/random": {
+        "/api/public/settings": {
+            "get": {
+                "description": "获取公共设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "setting"
+                ],
+                "summary": "获取公共设置",
+                "responses": {
+                    "200": {
+                        "description": "公共设置",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/images/image/random": {
             "get": {
                 "description": "随机获取一个图片 支持分类",
                 "consumes": [
@@ -567,33 +561,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/settings": {
-            "get": {
-                "description": "获取公共设置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "setting"
-                ],
-                "summary": "获取公共设置",
-                "responses": {
-                    "200": {
-                        "description": "公共设置",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/short/{short_link}": {
+        "/images/image/short/{short_link}": {
             "get": {
                 "description": "根据短链获取图片",
                 "consumes": [
@@ -611,6 +579,38 @@ const docTemplate = `{
                         "type": "string",
                         "description": "短链",
                         "name": "short_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "图片内容",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/images/image/{name}": {
+            "get": {
+                "description": "根据文件名获取图片",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "根据文件名获取图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件名",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }

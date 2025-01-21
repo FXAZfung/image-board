@@ -45,7 +45,7 @@ type ImageDeleteReq struct {
 //	@Produce		json
 //	@Param			name	path		string	true	"文件名"
 //	@Success		200		{string}	string	"图片内容"
-//	@Router			/api/public/images/{name} [get]
+//	@Router			/images/image/{name} [get]
 func GetImageByName(c *gin.Context) {
 	name := c.Param("name")
 
@@ -65,7 +65,7 @@ func GetImageByName(c *gin.Context) {
 // @Produce json
 // @Param category query string false "分类"
 // @Success 200 {object} string "图片内容"
-// @Router /api/public/random [get]
+// @Router /images/image/random [get]
 func GetRandomImage(c *gin.Context) {
 
 	// check count of login
@@ -128,7 +128,7 @@ func ListImages(c *gin.Context) {
 // @Produce json
 // @Param short_link path string true "短链"
 // @Success 200 {object} string "图片内容"
-// @Router /api/public/short/{short_link} [get]
+// @Router /images/image/short/{short_link} [get]
 func GetImageByShortLink(c *gin.Context) {
 	shortLink := c.Param("short_link")
 
@@ -170,7 +170,7 @@ func GetImageByShortLink(c *gin.Context) {
 // @Param image formData file true "图片"
 // @Param short_link formData string false "自定义短链"
 // @Param category formData string false "分类"
-// @Success 200 {object} string "短链"
+// @Success 200 {object} string "图片信息"
 // @Router /api/auth/upload [post]
 func UploadImage(c *gin.Context) {
 	file, err := c.FormFile("image")
@@ -239,7 +239,11 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 
-	common.SuccessResp(c, customShortLink)
+	common.SuccessResp(c, gin.H{
+		"path":     imageData.FileName,
+		"link":     imageData.ShortLink,
+		"category": imageData.Category,
+	})
 }
 
 // UploadImages 批量上传图片
