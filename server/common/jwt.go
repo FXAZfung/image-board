@@ -36,12 +36,12 @@ func GenerateToken(user *model.User) (tokenString string, err error) {
 }
 
 func ParseToken(tokenString string) (*UserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return SecretKey, nil
-	})
 	if IsTokenInvalidated(tokenString) {
 		return nil, errors.New("token is invalidated")
 	}
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return SecretKey, nil
+	})
 	if err != nil {
 		return nil, err
 	}

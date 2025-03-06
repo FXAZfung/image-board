@@ -17,7 +17,7 @@ func AuthMiddleware(c *gin.Context) {
 	if subtle.ConstantTimeCompare([]byte(token), []byte(setting.GetStr(config.Token))) == 1 {
 		admin, err := op.GetAdmin()
 		if err != nil {
-			common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+			common.ErrorResp(c, http.StatusInternalServerError, err)
 			c.Abort()
 			return
 		}
@@ -30,7 +30,7 @@ func AuthMiddleware(c *gin.Context) {
 	if token == "" {
 		guest, err := op.GetGuest()
 		if err != nil {
-			common.ErrorStrResp(c, http.StatusInternalServerError, err.Error())
+			common.ErrorResp(c, http.StatusInternalServerError, err)
 			c.Abort()
 			return
 		}
@@ -47,13 +47,13 @@ func AuthMiddleware(c *gin.Context) {
 	// 获取用户信息
 	userClaims, err := common.ParseToken(token)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusUnauthorized, err.Error())
+		common.ErrorResp(c, http.StatusUnauthorized, err)
 		c.Abort()
 		return
 	}
 	user, err := op.GetUserByName(userClaims.Username)
 	if err != nil {
-		common.ErrorStrResp(c, http.StatusUnauthorized, err.Error())
+		common.ErrorResp(c, http.StatusUnauthorized, err)
 		c.Abort()
 		return
 	}

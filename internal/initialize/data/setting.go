@@ -96,7 +96,7 @@ func InitialSettings() []model.SettingItem {
 		//{Key: conf.BasePath, Value: "", Type: conf.TypeString, Group: model.SITE},
 		{Key: conf.SiteTitle, Value: "IM 图床", Type: conf.TypeString, Group: model.SITE},
 		{Key: conf.Announcement, Value: "https://github.com/FXAZfung/image-board", Type: conf.TypeText, Group: model.SITE},
-		{Key: "index_title", Value: "在这里上传和分享你的图片", Type: conf.TypeString, Group: model.SITE},
+		{Key: "index_title", Value: "IM 图床", Type: conf.TypeString, Group: model.SITE},
 		{Key: "index_description", Value: "由 Go | Next 构建", Type: conf.TypeString, Group: model.SITE},
 		{Key: "pagination_type", Value: "all", Type: conf.TypeSelect, Options: "all,pagination,load_more,auto_load_more", Group: model.SITE},
 		{Key: "default_page_size", Value: "10", Type: conf.TypeNumber, Group: model.SITE},

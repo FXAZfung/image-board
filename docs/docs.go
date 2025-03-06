@@ -15,9 +15,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/auth/categories": {
-            "post": {
-                "description": "创建分类",
+        "/api/auth/images/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新图片的描述、可见性等信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -25,32 +30,185 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "category"
+                    "auth"
                 ],
-                "summary": "创建分类",
+                "summary": "更新图片信息",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Authorization",
+                        "description": "Bearer 用户令牌",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "分类信息",
-                        "name": "category",
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新信息",
+                        "name": "image",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handles.CategoryReq"
+                            "$ref": "#/definitions/request.UpdateImageReq"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "分类",
+                        "description": "图片更新成功相应",
                         "schema": {
-                            "$ref": "#/definitions/model.Category"
+                            "$ref": "#/definitions/model.Image"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除指定ID的图片及其关联数据",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "删除图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "图片删除成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.ImageDeleteResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/images/{id}/tags": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "给图片添加一个或多个标签",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "给图片添加标签",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "标签列表",
+                        "name": "tags",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AddTagsReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "添加标签成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.ImageTagResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/images/{id}/tags/{tag_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "从图片中移除指定标签",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "从图片中移除标签",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签ID",
+                        "name": "tag_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "移除标签成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.ImageTagResponse"
                         }
                     }
                 }
@@ -88,9 +246,155 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/tags": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new tag in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Create a new tag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer user token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Tag to create",
+                        "name": "tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateTagReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Created tag",
+                        "schema": {
+                            "$ref": "#/definitions/model.Tag"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/tags/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update an existing tag's information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Update a tag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer user token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated tag information",
+                        "name": "tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateTagReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated tag",
+                        "schema": {
+                            "$ref": "#/definitions/model.Tag"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a tag and remove it from all associated images",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Delete a tag",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer user token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag deletion response",
+                        "schema": {
+                            "$ref": "#/definitions/response.TagDeleteResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/upload": {
             "post": {
-                "description": "批量上传图片",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传新图片并可选添加描述、主标签等信息",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -100,30 +404,49 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "批量上传图片",
+                "summary": "上传图片",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token",
+                        "description": "Bearer 用户令牌",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "图片",
-                        "name": "images",
+                        "description": "图片文件",
+                        "name": "image",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "分类",
-                        "name": "category",
+                        "description": "描述",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否公开",
+                        "name": "is_public",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "主标签",
+                        "name": "main_tag",
                         "in": "formData"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "上传图片成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.ImageUploadResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/private/setting": {
@@ -355,67 +678,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/categories": {
-            "get": {
-                "description": "获取图片分类",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "category"
-                ],
-                "summary": "获取图片分类",
-                "responses": {
-                    "200": {
-                        "description": "分类列表",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Category"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/categories/{name}": {
-            "get": {
-                "description": "根据分类名获取图片",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "category"
-                ],
-                "summary": "根据分类名获取图片",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "分类名",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "分类",
-                        "schema": {
-                            "$ref": "#/definitions/model.Category"
-                        }
-                    }
-                }
-            }
-        },
         "/api/public/images": {
             "post": {
-                "description": "分页列出图片",
+                "description": "分页获取所有图片",
                 "consumes": [
                     "application/json"
                 ],
@@ -428,7 +693,7 @@ const docTemplate = `{
                 "summary": "分页列出图片",
                 "parameters": [
                     {
-                        "description": "分页",
+                        "description": "分页参数",
                         "name": "page",
                         "in": "body",
                         "required": true,
@@ -439,17 +704,29 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "图片列表",
+                        "description": "图片列表和总数",
                         "schema": {
-                            "$ref": "#/definitions/common.PageResp"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.PageResp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "content": {
+                                            "$ref": "#/definitions/model.Image"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
             }
         },
-        "/api/public/info": {
+        "/api/public/images/count": {
             "get": {
-                "description": "获取信息",
+                "description": "获取系统中的图片总数",
                 "consumes": [
                     "application/json"
                 ],
@@ -457,14 +734,99 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "info"
+                    "image"
                 ],
-                "summary": "获取信息",
+                "summary": "获取图片数量",
                 "responses": {
                     "200": {
-                        "description": "信息",
+                        "description": "图片数量",
                         "schema": {
-                            "$ref": "#/definitions/handles.InfoResp"
+                            "$ref": "#/definitions/response.ImageCountResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/images/tag": {
+            "post": {
+                "description": "获取包含特定标签的所有图片",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "根据标签获取图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "标签名称",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "分页参数",
+                        "name": "page",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "图片列表和总数",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.PageResp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "content": {
+                                            "$ref": "#/definitions/model.Image"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/images/{id}": {
+            "get": {
+                "description": "根据ID获取图片详细信息，包括标签等",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "根据ID获取图片",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "图片信息",
+                        "schema": {
+                            "$ref": "#/definitions/model.Image"
                         }
                     }
                 }
@@ -530,9 +892,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/images/image/random": {
-            "get": {
-                "description": "随机获取一个图片 支持分类",
+        "/api/public/tags": {
+            "post": {
+                "description": "Get a paginated list of all tags",
                 "consumes": [
                     "application/json"
                 ],
@@ -540,30 +902,48 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "image"
+                    "tag"
                 ],
-                "summary": "随机获取一个图片 支持分类",
+                "summary": "List tags",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "分类",
-                        "name": "category",
-                        "in": "query"
+                        "description": "Pagination parameters",
+                        "name": "page",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageReq"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "图片内容",
+                        "description": "Tags list and count",
                         "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.PageResp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "content": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.Tag"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
             }
         },
-        "/images/image/short/{short_link}": {
+        "/api/public/tags/image/{image_id}": {
             "get": {
-                "description": "根据短链获取图片",
+                "description": "Get all tags associated with a specific image",
                 "consumes": [
                     "application/json"
                 ],
@@ -571,23 +951,190 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "image"
+                    "tag"
                 ],
-                "summary": "根据短链获取图片",
+                "summary": "Get tags for image",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "短链",
-                        "name": "short_link",
+                        "type": "integer",
+                        "description": "Image ID",
+                        "name": "image_id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
+                        "description": "List of tags",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Tag"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/tags/name": {
+            "get": {
+                "description": "Get tag details by its name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Get tag by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tag name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag details",
+                        "schema": {
+                            "$ref": "#/definitions/model.Tag"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/tags/popular": {
+            "get": {
+                "description": "Get the most popular tags by usage count",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Get popular tags",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Maximum number of tags to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of popular tags",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Tag"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/tags/search": {
+            "get": {
+                "description": "Search for tags that start with the given prefix",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Search tags",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tag prefix to search for",
+                        "name": "prefix",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of results",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of matching tags",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Tag"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/tags/{id}": {
+            "get": {
+                "description": "Get tag details by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tag"
+                ],
+                "summary": "Get tag by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Tag ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag details",
+                        "schema": {
+                            "$ref": "#/definitions/model.Tag"
+                        }
+                    }
+                }
+            }
+        },
+        "/images/image/random": {
+            "get": {
+                "description": "随机获取一个图片，支持按分类过滤",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/*"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "随机获取一个图片",
+                "responses": {
+                    "200": {
                         "description": "图片内容",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
                         }
                     }
                 }
@@ -595,12 +1142,12 @@ const docTemplate = `{
         },
         "/images/image/{name}": {
             "get": {
-                "description": "根据文件名获取图片",
+                "description": "直接返回图片文件",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
-                    "application/json"
+                    "image/*"
                 ],
                 "tags": [
                     "image"
@@ -619,7 +1166,39 @@ const docTemplate = `{
                     "200": {
                         "description": "图片内容",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/images/thumbnail/{name}": {
+            "get": {
+                "description": "根据文件名获取图片的缩略图",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/*"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "获取图片缩略图",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件名",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "缩略图内容",
+                        "schema": {
+                            "type": "file"
                         }
                     }
                 }
@@ -632,37 +1211,6 @@ const docTemplate = `{
             "properties": {
                 "content": {},
                 "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "handles.CategoryReq": {
-            "type": "object",
-            "properties": {
-                "is_public": {
-                    "type": "boolean"
-                },
-                "is_random": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "handles.InfoResp": {
-            "type": "object",
-            "properties": {
-                "category_count": {
-                    "type": "integer"
-                },
-                "image_count": {
-                    "type": "integer"
-                },
-                "storage_usage": {
-                    "type": "integer"
-                },
-                "user_count": {
                     "type": "integer"
                 }
             }
@@ -689,20 +1237,73 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Category": {
+        "model.Image": {
             "type": "object",
             "properties": {
+                "content_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "download_count": {
+                    "description": "下载次数",
+                    "type": "integer"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "height": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "is_deleted": {
+                    "type": "boolean"
                 },
                 "is_public": {
                     "type": "boolean"
                 },
-                "is_random": {
-                    "type": "boolean"
-                },
-                "name": {
+                "original_name": {
                     "type": "string"
+                },
+                "path": {
+                    "description": "图片路径",
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "tags": {
+                    "description": "标签，多对多关系",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Tag"
+                    }
+                },
+                "thumbnail_path": {
+                    "description": "缩略图路径",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "view_count": {
+                    "description": "浏览次数",
+                    "type": "integer"
+                },
+                "width": {
+                    "type": "integer"
                 }
             }
         },
@@ -753,6 +1354,133 @@ const docTemplate = `{
                 "value": {
                     "description": "value",
                     "type": "string"
+                }
+            }
+        },
+        "model.Tag": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "description": "使用此标签的图片数量",
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "标签名称，唯一且索引",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.AddTagsReq": {
+            "type": "object",
+            "required": [
+                "tags"
+            ],
+            "properties": {
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "request.CreateTagReq": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.UpdateImageReq": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "main_tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ImageCountResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 42
+                }
+            }
+        },
+        "response.ImageDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Image deleted successfully"
+                }
+            }
+        },
+        "response.ImageTagResponse": {
+            "type": "object",
+            "properties": {
+                "image_id": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "response.ImageUploadResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "path": {
+                    "type": "string",
+                    "example": "abc123.jpg"
+                }
+            }
+        },
+        "response.TagDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         }

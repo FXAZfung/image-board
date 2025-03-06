@@ -5,26 +5,6 @@ definitions:
       total:
         type: integer
     type: object
-  handles.CategoryReq:
-    properties:
-      is_public:
-        type: boolean
-      is_random:
-        type: boolean
-      name:
-        type: string
-    type: object
-  handles.InfoResp:
-    properties:
-      category_count:
-        type: integer
-      image_count:
-        type: integer
-      storage_usage:
-        type: integer
-      user_count:
-        type: integer
-    type: object
   handles.LoginReq:
     properties:
       password:
@@ -39,16 +19,53 @@ definitions:
       token:
         type: string
     type: object
-  model.Category:
+  model.Image:
     properties:
+      content_type:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      download_count:
+        description: 下载次数
+        type: integer
+      file_name:
+        type: string
+      hash:
+        type: string
+      height:
+        type: integer
       id:
         type: integer
+      is_deleted:
+        type: boolean
       is_public:
         type: boolean
-      is_random:
-        type: boolean
-      name:
+      original_name:
         type: string
+      path:
+        description: 图片路径
+        type: string
+      size:
+        type: integer
+      tags:
+        description: 标签，多对多关系
+        items:
+          $ref: '#/definitions/model.Tag'
+        type: array
+      thumbnail_path:
+        description: 缩略图路径
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      view_count:
+        description: 浏览次数
+        type: integer
+      width:
+        type: integer
     type: object
   model.PageReq:
     properties:
@@ -85,36 +102,221 @@ definitions:
     required:
     - key
     type: object
+  model.Tag:
+    properties:
+      count:
+        description: 使用此标签的图片数量
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        description: 标签名称，唯一且索引
+        type: string
+      updated_at:
+        type: string
+    type: object
+  request.AddTagsReq:
+    properties:
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+    - tags
+    type: object
+  request.CreateTagReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  request.UpdateImageReq:
+    properties:
+      description:
+        type: string
+      is_public:
+        type: boolean
+      main_tag:
+        type: string
+    type: object
+  response.ImageCountResponse:
+    properties:
+      count:
+        example: 42
+        type: integer
+    type: object
+  response.ImageDeleteResponse:
+    properties:
+      id:
+        example: 1
+        type: integer
+      message:
+        example: Image deleted successfully
+        type: string
+    type: object
+  response.ImageTagResponse:
+    properties:
+      image_id:
+        type: integer
+      success:
+        type: boolean
+      tags:
+        items:
+          type: integer
+        type: array
+    type: object
+  response.ImageUploadResponse:
+    properties:
+      id:
+        example: 1
+        type: integer
+      path:
+        example: abc123.jpg
+        type: string
+    type: object
+  response.TagDeleteResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      success:
+        type: boolean
+    type: object
 info:
   contact: {}
 paths:
-  /api/auth/categories:
-    post:
+  /api/auth/images/{id}:
+    delete:
       consumes:
       - application/json
-      description: 创建分类
+      description: 删除指定ID的图片及其关联数据
       parameters:
-      - description: Authorization
+      - description: Bearer 用户令牌
         in: header
         name: Authorization
         required: true
         type: string
-      - description: 分类信息
-        in: body
-        name: category
+      - description: 图片ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/handles.CategoryReq'
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: 分类
+          description: 图片删除成功响应
           schema:
-            $ref: '#/definitions/model.Category'
-      summary: 创建分类
+            $ref: '#/definitions/response.ImageDeleteResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除图片
       tags:
-      - category
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: 更新图片的描述、可见性等信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: image
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateImageReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片更新成功相应
+          schema:
+            $ref: '#/definitions/model.Image'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新图片信息
+      tags:
+      - auth
+  /api/auth/images/{id}/tags:
+    post:
+      consumes:
+      - application/json
+      description: 给图片添加一个或多个标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 标签列表
+        in: body
+        name: tags
+        required: true
+        schema:
+          $ref: '#/definitions/request.AddTagsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 添加标签成功响应
+          schema:
+            $ref: '#/definitions/response.ImageTagResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 给图片添加标签
+      tags:
+      - auth
+  /api/auth/images/{id}/tags/{tag_id}:
+    delete:
+      consumes:
+      - application/json
+      description: 从图片中移除指定标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 标签ID
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 移除标签成功响应
+          schema:
+            $ref: '#/definitions/response.ImageTagResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 从图片中移除标签
+      tags:
+      - auth
   /api/auth/logout:
     get:
       consumes:
@@ -136,30 +338,134 @@ paths:
       summary: 登出
       tags:
       - auth
-  /api/auth/upload:
+  /api/auth/tags:
     post:
       consumes:
-      - multipart/form-data
-      description: 批量上传图片
+      - application/json
+      description: Create a new tag in the system
       parameters:
-      - description: Token
+      - description: Bearer user token
         in: header
         name: Authorization
         required: true
         type: string
-      - description: 图片
+      - description: Tag to create
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateTagReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created tag
+          schema:
+            $ref: '#/definitions/model.Tag'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new tag
+      tags:
+      - tag
+  /api/auth/tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a tag and remove it from all associated images
+      parameters:
+      - description: Bearer user token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag deletion response
+          schema:
+            $ref: '#/definitions/response.TagDeleteResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a tag
+      tags:
+      - tag
+    put:
+      consumes:
+      - application/json
+      description: Update an existing tag's information
+      parameters:
+      - description: Bearer user token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated tag information
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateTagReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated tag
+          schema:
+            $ref: '#/definitions/model.Tag'
+      security:
+      - ApiKeyAuth: []
+      summary: Update a tag
+      tags:
+      - tag
+  /api/auth/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传新图片并可选添加描述、主标签等信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片文件
         in: formData
-        name: images
+        name: image
         required: true
         type: file
-      - description: 分类
+      - description: 描述
         in: formData
-        name: category
+        name: description
+        type: string
+      - description: 是否公开
+        in: formData
+        name: is_public
+        type: boolean
+      - description: 主标签
+        in: formData
+        name: main_tag
         type: string
       produces:
       - application/json
-      responses: {}
-      summary: 批量上传图片
+      responses:
+        "200":
+          description: 上传图片成功响应
+          schema:
+            $ref: '#/definitions/response.ImageUploadResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 上传图片
       tags:
       - auth
   /api/private/setting:
@@ -315,51 +621,13 @@ paths:
       summary: 列出用户列表
       tags:
       - user
-  /api/public/categories:
-    get:
-      consumes:
-      - application/json
-      description: 获取图片分类
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 分类列表
-          schema:
-            items:
-              $ref: '#/definitions/model.Category'
-            type: array
-      summary: 获取图片分类
-      tags:
-      - category
-  /api/public/categories/{name}:
-    get:
-      consumes:
-      - application/json
-      description: 根据分类名获取图片
-      parameters:
-      - description: 分类名
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 分类
-          schema:
-            $ref: '#/definitions/model.Category'
-      summary: 根据分类名获取图片
-      tags:
-      - category
   /api/public/images:
     post:
       consumes:
       - application/json
-      description: 分页列出图片
+      description: 分页获取所有图片
       parameters:
-      - description: 分页
+      - description: 分页参数
         in: body
         name: page
         required: true
@@ -369,27 +637,85 @@ paths:
       - application/json
       responses:
         "200":
-          description: 图片列表
+          description: 图片列表和总数
           schema:
-            $ref: '#/definitions/common.PageResp'
+            allOf:
+            - $ref: '#/definitions/common.PageResp'
+            - properties:
+                content:
+                  $ref: '#/definitions/model.Image'
+              type: object
       summary: 分页列出图片
       tags:
       - image
-  /api/public/info:
+  /api/public/images/{id}:
     get:
       consumes:
       - application/json
-      description: 获取信息
+      description: 根据ID获取图片详细信息，包括标签等
+      parameters:
+      - description: 图片ID
+        in: path
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: 信息
+          description: 图片信息
           schema:
-            $ref: '#/definitions/handles.InfoResp'
-      summary: 获取信息
+            $ref: '#/definitions/model.Image'
+      summary: 根据ID获取图片
       tags:
-      - info
+      - image
+  /api/public/images/count:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统中的图片总数
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片数量
+          schema:
+            $ref: '#/definitions/response.ImageCountResponse'
+      summary: 获取图片数量
+      tags:
+      - image
+  /api/public/images/tag:
+    post:
+      consumes:
+      - application/json
+      description: 获取包含特定标签的所有图片
+      parameters:
+      - description: 标签名称
+        in: query
+        name: tag
+        required: true
+        type: string
+      - description: 分页参数
+        in: body
+        name: page
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 图片列表和总数
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.PageResp'
+            - properties:
+                content:
+                  $ref: '#/definitions/model.Image'
+              type: object
+      summary: 根据标签获取图片
+      tags:
+      - image
   /api/public/login:
     post:
       consumes:
@@ -429,14 +755,87 @@ paths:
       summary: 获取公共设置
       tags:
       - setting
-  /images/image/{name}:
+  /api/public/tags:
+    post:
+      consumes:
+      - application/json
+      description: Get a paginated list of all tags
+      parameters:
+      - description: Pagination parameters
+        in: body
+        name: page
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tags list and count
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.PageResp'
+            - properties:
+                content:
+                  items:
+                    $ref: '#/definitions/model.Tag'
+                  type: array
+              type: object
+      summary: List tags
+      tags:
+      - tag
+  /api/public/tags/{id}:
     get:
       consumes:
       - application/json
-      description: 根据文件名获取图片
+      description: Get tag details by its ID
       parameters:
-      - description: 文件名
+      - description: Tag ID
         in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag details
+          schema:
+            $ref: '#/definitions/model.Tag'
+      summary: Get tag by ID
+      tags:
+      - tag
+  /api/public/tags/image/{image_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get all tags associated with a specific image
+      parameters:
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tags
+          schema:
+            items:
+              $ref: '#/definitions/model.Tag'
+            type: array
+      summary: Get tags for image
+      tags:
+      - tag
+  /api/public/tags/name:
+    get:
+      consumes:
+      - application/json
+      description: Get tag details by its name
+      parameters:
+      - description: Tag name
+        in: query
         name: name
         required: true
         type: string
@@ -444,9 +843,81 @@ paths:
       - application/json
       responses:
         "200":
+          description: Tag details
+          schema:
+            $ref: '#/definitions/model.Tag'
+      summary: Get tag by name
+      tags:
+      - tag
+  /api/public/tags/popular:
+    get:
+      consumes:
+      - application/json
+      description: Get the most popular tags by usage count
+      parameters:
+      - default: 10
+        description: Maximum number of tags to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of popular tags
+          schema:
+            items:
+              $ref: '#/definitions/model.Tag'
+            type: array
+      summary: Get popular tags
+      tags:
+      - tag
+  /api/public/tags/search:
+    get:
+      consumes:
+      - application/json
+      description: Search for tags that start with the given prefix
+      parameters:
+      - description: Tag prefix to search for
+        in: query
+        name: prefix
+        required: true
+        type: string
+      - default: 20
+        description: Maximum number of results
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of matching tags
+          schema:
+            items:
+              $ref: '#/definitions/model.Tag'
+            type: array
+      summary: Search tags
+      tags:
+      - tag
+  /images/image/{name}:
+    get:
+      consumes:
+      - application/json
+      description: 直接返回图片文件
+      parameters:
+      - description: 文件名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - image/*
+      responses:
+        "200":
           description: 图片内容
           schema:
-            type: string
+            type: file
       summary: 根据文件名获取图片
       tags:
       - image
@@ -454,41 +925,36 @@ paths:
     get:
       consumes:
       - application/json
-      description: 随机获取一个图片 支持分类
-      parameters:
-      - description: 分类
-        in: query
-        name: category
-        type: string
+      description: 随机获取一个图片，支持按分类过滤
       produces:
-      - application/json
+      - image/*
       responses:
         "200":
           description: 图片内容
           schema:
-            type: string
-      summary: 随机获取一个图片 支持分类
+            type: file
+      summary: 随机获取一个图片
       tags:
       - image
-  /images/image/short/{short_link}:
+  /images/thumbnail/{name}:
     get:
       consumes:
       - application/json
-      description: 根据短链获取图片
+      description: 根据文件名获取图片的缩略图
       parameters:
-      - description: 短链
+      - description: 文件名
         in: path
-        name: short_link
+        name: name
         required: true
         type: string
       produces:
-      - application/json
+      - image/*
       responses:
         "200":
-          description: 图片内容
+          description: 缩略图内容
           schema:
-            type: string
-      summary: 根据短链获取图片
+            type: file
+      summary: 获取图片缩略图
       tags:
       - image
 swagger: "2.0"

@@ -1,25 +1,22 @@
 package handles
 
 import (
-	"bytes"
 	"github.com/FXAZfung/go-cache"
-	"github.com/FXAZfung/image-board/internal/config"
 	"github.com/FXAZfung/image-board/internal/model"
+	"github.com/FXAZfung/image-board/internal/model/request"
+	"github.com/FXAZfung/image-board/internal/model/response"
 	"github.com/FXAZfung/image-board/internal/op"
-	"github.com/FXAZfung/image-board/pkg/random"
+	"github.com/FXAZfung/image-board/internal/service"
+	"github.com/FXAZfung/image-board/pkg/utils"
 	"github.com/FXAZfung/image-board/server/common"
-	log "github.com/sirupsen/logrus"
-	"image"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+	"time"
+
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"io"
-	"net/http"
-	"path"
-	"strings"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 var imageCache = cache.NewMemCache[int]()
@@ -28,24 +25,41 @@ var (
 	imageTimes    = 15
 )
 
-type ImageDeleteReq struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
+// GetImageByID 根据ID获取图片
+// @Summary 根据ID获取图片
+// @Description 根据ID获取图片详细信息，包括标签等
+// @Tags image
+// @Accept json
+// @Produce json
+// @Param id path int true "图片ID"
+// @Success 200 {object} model.Image "图片信息"
+// @Router /api/public/images/{id} [get]
+func GetImageByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	image, err := op.GetImageByID(uint(id))
+	if err != nil {
+		common.ErrorResp(c, http.StatusNotFound, err)
+		return
+	}
+
+	common.SuccessResp(c, image)
 }
 
 // GetImageByName 根据文件名获取图片
-//
-//	@Summary		根据文件名获取图片
-//	@title		    根据文件名获取图片
-//	@version		1.0
-//	@Description	根据文件名获取图片
-//	@termsOfService	http://www.swagger.io/terms/
-//	@Tags			image
-//	@Accept			json
-//	@Produce		json
-//	@Param			name	path		string	true	"文件名"
-//	@Success		200		{string}	string	"图片内容"
-//	@Router			/images/image/{name} [get]
+// @Summary 根据文件名获取图片
+// @Description 直接返回图片文件
+// @Tags image
+// @Accept json
+// @Produce image/*
+// @Param name path string true "文件名"
+// @Success 200 {file} binary "图片内容"
+// @Router /images/image/{name} [get]
 func GetImageByName(c *gin.Context) {
 	name := c.Param("name")
 
@@ -57,48 +71,53 @@ func GetImageByName(c *gin.Context) {
 	c.File(imageData.Path)
 }
 
-// GetRandomImage 随机获取一个图片 支持分类
-// @Summary 随机获取一个图片 支持分类
-// @Description 随机获取一个图片 支持分类
+// GetRandomImage 随机获取一个图片
+// @Summary 随机获取一个图片
+// @Description 随机获取一个图片，支持按分类过滤
 // @Tags image
 // @Accept json
-// @Produce json
-// @Param category query string false "分类"
-// @Success 200 {object} string "图片内容"
+// @Produce image/*
+// @Success 200 {file} binary "图片内容"
 // @Router /images/image/random [get]
 func GetRandomImage(c *gin.Context) {
-
-	// check count of login
+	// 检查请求频率限制
 	ip := c.ClientIP()
 	count, ok := imageCache.Get(ip)
 	if ok && count >= imageTimes {
-		common.ErrorStrResp(c, http.StatusTooManyRequests, "Too many requests for image in a short time")
+		common.ErrorStrResp(c, http.StatusTooManyRequests, "Too many requests for random images")
 		imageCache.Expire(ip, imageDuration)
 		return
 	}
-	category := c.Query("category")
 
-	c.Header("Cache-Control", "no-cache")
+	// 设置不缓存头
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Header("Pragma", "no-cache")
 	c.Header("Expires", "0")
 
-	imageData, err := op.GetRandomImage(category)
+	imageData, err := op.GetRandomImage()
 	if err != nil || imageData == nil {
 		common.ErrorStrResp(c, http.StatusNotFound, "Image not found")
 		return
 	}
-	imageCache.Set(ip, count+1)
+
+	// 更新请求计数器
+	if ok {
+		imageCache.Set(ip, count+1)
+	} else {
+		imageCache.Set(ip, 1, cache.WithEx[int](imageDuration))
+	}
+
 	c.File(imageData.Path)
 }
 
 // ListImages 分页列出图片
 // @Summary 分页列出图片
-// @Description 分页列出图片
+// @Description 分页获取所有图片
 // @Tags image
 // @Accept json
 // @Produce json
-// @Param page body model.PageReq true "分页"
-// @Success 200 {object} common.PageResp "图片列表"
+// @Param page body model.PageReq true "分页参数"
+// @Success 200 {object} common.PageResp{content=model.Image} "图片列表和总数"
 // @Router /api/public/images [post]
 func ListImages(c *gin.Context) {
 	var req model.PageReq
@@ -106,7 +125,7 @@ func ListImages(c *gin.Context) {
 		common.ErrorResp(c, http.StatusBadRequest, err)
 		return
 	}
-	log.Debugf("%+v", req)
+
 	req.Validate()
 	images, total, err := op.GetImagesByPage(req.Page, req.PerPage)
 	if err != nil {
@@ -120,205 +139,289 @@ func ListImages(c *gin.Context) {
 	})
 }
 
-// GetImageByShortLink 根据短链获取图片
-// @Summary 根据短链获取图片
-// @Description 根据短链获取图片
+// UploadImage 上传图片
+// @Summary 上传图片
+// @Description 上传新图片并可选添加描述、主标签等信息
+// @Tags auth
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param image formData file true "图片文件"
+// @Param description formData string false "描述"
+// @Param is_public formData boolean false "是否公开"
+// @Param main_tag formData string false "主标签"
+// @Success 200 {object} response.ImageUploadResponse "上传图片成功响应"
+// @Router /api/auth/upload [post]
+func UploadImage(c *gin.Context) {
+	// Parse request
+	var req request.UploadImageReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get image file
+	file, err := c.FormFile("image")
+	if err != nil || file == nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Missing image file")
+		return
+	}
+	req.Image = file
+
+	// Get current user
+	user, exist := c.Get("user")
+	if !exist {
+		common.ErrorStrResp(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	// Call service to upload image
+	image, err := service.UploadImage(file, user.(*model.User), req)
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Return success response
+	common.SuccessResp(c, response.ImageUploadResponse{
+		ID:   image.ID,
+		Path: image.FileName,
+	})
+}
+
+// UpdateImage 更新图片信息
+// @Summary 更新图片信息
+// @Description 更新图片的描述、可见性等信息
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "图片ID"
+// @Param image body request.UpdateImageReq true "更新信息"
+// @Success 200 {object} model.Image "图片更新成功相应"
+// @Router /api/auth/images/{id} [put]
+func UpdateImage(c *gin.Context) {
+	// Parse ID parameter
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	// Parse request body
+	var req request.UpdateImageReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// Call service to update image
+	image, err := service.UpdateImage(uint(id), req)
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	common.SuccessResp(c, image)
+}
+
+// DeleteImage 删除图片
+// @Summary 删除图片
+// @Description 删除指定ID的图片及其关联数据
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "图片ID"
+// @Success 200 {object} response.ImageDeleteResponse "图片删除成功响应"
+// @Router /api/auth/images/{id} [delete]
+func DeleteImage(c *gin.Context) {
+	// Parse ID parameter
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	// Call service to delete image
+	resp, err := service.DeleteImage(uint(id))
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	common.SuccessResp(c, resp)
+}
+
+// RemoveTagFromImage 从图片中移除标签
+// @Summary 从图片中移除标签
+// @Description 从图片中移除指定标签
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "图片ID"
+// @Param tag_id path int true "标签ID"
+// @Success 200 {object} response.ImageTagResponse "移除标签成功响应"
+// @Router /api/auth/images/{id}/tags/{tag_id} [delete]
+func RemoveTagFromImage(c *gin.Context) {
+	// Parse parameters
+	imageIDStr := c.Param("id")
+	tagIDStr := c.Param("tag_id")
+
+	imageID, err := strconv.ParseUint(imageIDStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid image ID format")
+		return
+	}
+
+	tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid tag ID format")
+		return
+	}
+
+	// Call service to remove tag
+	resp, err := service.RemoveTagFromImage(uint(imageID), uint(tagID))
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	common.SuccessResp(c, resp)
+}
+
+// AddTagsToImage 给图片添加标签
+// @Summary 给图片添加标签
+// @Description 给图片添加一个或多个标签
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "图片ID"
+// @Param tags body request.AddTagsReq true "标签列表"
+// @Success 200 {object} response.ImageTagResponse "添加标签成功响应"
+// @Router /api/auth/images/{id}/tags [post]
+func AddTagsToImage(c *gin.Context) {
+	// Parse ID parameter
+	imageIDStr := c.Param("id")
+	imageID, err := strconv.ParseUint(imageIDStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid image ID format")
+		return
+	}
+
+	// Parse request body
+	var req request.AddTagsReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if len(req.Tags) == 0 {
+		common.ErrorStrResp(c, http.StatusBadRequest, "No tags provided")
+		return
+	}
+
+	// Call service to add tags
+	resp, err := service.AddTagsToImage(uint(imageID), req.Tags)
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	common.SuccessResp(c, resp)
+}
+
+// GetImagesByTag handles requests to retrieve images by a specific tag name
+// @Summary 根据标签获取图片
+// @Description 获取包含特定标签的所有图片
 // @Tags image
 // @Accept json
 // @Produce json
-// @Param short_link path string true "短链"
-// @Success 200 {object} string "图片内容"
-// @Router /images/image/short/{short_link} [get]
-func GetImageByShortLink(c *gin.Context) {
-	shortLink := c.Param("short_link")
+// @Param tag query string true "标签名称"
+// @Param page body model.PageReq true "分页参数"
+// @Success 200 {object} common.PageResp{content=model.Image} "图片列表和总数"
+// @Router /api/public/images/tag [post]
+func GetImagesByTag(c *gin.Context) {
+	tagName := c.Query("tag")
+	if tagName == "" {
+		common.ErrorStrResp(c, 400, "Tag name is required")
+		return
+	}
 
-	imageData, err := op.GetImageByShortLink(shortLink)
+	var req model.PageReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, 400, err)
+		return
+	}
+	req.Validate()
+
+	images, count, err := op.GetImagesByTag(tagName, req.Page, req.PerPage)
+	if err != nil {
+		common.ErrorResp(c, 500, err)
+		return
+	}
+
+	common.SuccessResp(c, common.PageResp{
+		Content: images,
+		Total:   count,
+	})
+}
+
+// GetImageCount 获取图片数量
+// @Summary 获取图片数量
+// @Description 获取系统中的图片总数
+// @Tags image
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.ImageCountResponse "图片数量"
+// @Router /api/public/images/count [get]
+func GetImageCount(c *gin.Context) {
+	count, err := op.GetImageCount()
+	if err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	common.SuccessResp(c, response.ImageCountResponse{
+		Count: count,
+	})
+}
+
+// GetThumbnailByName 获取图片缩略图
+// @Summary 获取图片缩略图
+// @Description 根据文件名获取图片的缩略图
+// @Tags image
+// @Accept json
+// @Produce image/*
+// @Param name path string true "文件名"
+// @Success 200 {file} binary "缩略图内容"
+// @Router /images/thumbnail/{name} [get]
+func GetThumbnailByName(c *gin.Context) {
+	name := c.Param("name")
+
+	imageData, err := op.GetImageByFileName(name)
 	if err != nil || imageData == nil {
 		common.ErrorStrResp(c, http.StatusNotFound, "Image not found")
 		return
 	}
 
-	c.File(imageData.Path)
-}
+	// 构建缩略图路径
+	thumbnailPath := service.GetThumbnailPath(imageData.Path)
 
-//TODO
-//// ReloadImages 重新从磁盘加载图片同时更新数据库
-//// @Summary 重新从磁盘加载图片同时更新数据库
-//// @Description 重新从磁盘加载图片同时更新数据库
-//// @Tags image
-//// @Accept json
-//// @Produce json
-//// @Param Authorization header string true "Token"
-//// @Success 200 {string} "成功"
-//// @Router /api/private/reload [get]
-//func ReloadImages(c *gin.Context) {
-//	err := op.ReloadImages()
-//	if err != nil {
-//		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to reload images")
-//		return
-//	}
-//	common.SuccessResp(c)
-//}
-
-// UploadImage 上传图片
-// @Summary 上传图片
-// @Description 上传图片
-// @Tags auth
-// @Accept multipart/form-data
-// @Produce json
-// @Param Authorization header string true "Token"
-// @Param image formData file true "图片"
-// @Param short_link formData string false "自定义短链"
-// @Param category formData string false "分类"
-// @Success 200 {object} string "图片信息"
-// @Router /api/auth/upload [post]
-func UploadImage(c *gin.Context) {
-	file, err := c.FormFile("image")
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Failed to get file")
+	// 如果缩略图不存在，则重定向到原图
+	if !utils.IsExist(thumbnailPath) {
+		c.File(imageData.Path)
 		return
 	}
 
-	// 读取文件内容
-	f, err := file.Open()
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file")
-		return
-	}
-	defer f.Close()
-
-	data, err := io.ReadAll(f)
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file content")
-		return
-	}
-
-	// 获取图片宽高
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid image format "+err.Error())
-		return
-	}
-	width := img.Bounds().Dx()
-	height := img.Bounds().Dy()
-
-	// 对上传的图片的文件名进行处理
-	file.Filename = random.RandomizeFileName(file.Filename)
-
-	// 检查是否有自定义短链
-	customShortLink := c.PostForm("short_link")
-	if customShortLink == "" {
-		customShortLink = random.String(6)
-	} else {
-		// 检查短链是否唯一
-		existing, _ := op.GetImageByShortLink(customShortLink)
-		if existing != nil {
-			common.ErrorStrResp(c, http.StatusConflict, "Custom short link already exists")
-			return
-		}
-	}
-
-	// 统一使用小写分类
-	category := strings.ToLower(c.PostForm("category"))
-
-	targetFilePath := path.Join(config.Conf.DataImage.Dir, category, file.Filename)
-
-	imageData := &model.Image{
-		FileName:    file.Filename,
-		Width:       width,
-		Height:      height,
-		ShortLink:   customShortLink,
-		Path:        targetFilePath,
-		ContentType: file.Header.Get("Content-Type"),
-		Category:    category,
-	}
-	// 保存图片到数据库
-	err = op.CreateImage(imageData, data, targetFilePath)
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to save image")
-		return
-	}
-
-	common.SuccessResp(c, gin.H{
-		"path":     imageData.FileName,
-		"link":     imageData.ShortLink,
-		"category": imageData.Category,
-	})
-}
-
-// UploadImages 批量上传图片
-// @Summary 批量上传图片
-// @Description 批量上传图片
-// @Tags auth
-// @Accept multipart/form-data
-// @Produce json
-// @Param Authorization header string true "Token"
-// @Param images formData file true "图片"
-// @Param category formData string false "分类"
-// @Router /api/auth/upload [post]
-func UploadImages(c *gin.Context) {
-	form, err := c.MultipartForm()
-	if err != nil {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Failed to get file")
-		return
-	}
-
-	files := form.File["images"]
-	if len(files) == 0 {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Failed to get file")
-		return
-	}
-
-	// 限制最大上传文件数为10
-	if len(files) > 10 {
-		common.ErrorStrResp(c, http.StatusBadRequest, "Maximum 10 files allowed")
-		return
-	}
-
-	category := c.PostForm("category")
-
-	for _, file := range files {
-		// 将文件挨个保存
-		f, err := file.Open()
-		if err != nil {
-			common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file")
-			return // 有一个文件读取失败就返回
-		}
-		defer f.Close()
-		data, err := io.ReadAll(f)
-		if err != nil {
-			common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to read file content")
-			return
-		}
-		// 获取图片宽高
-		img, _, err := image.Decode(bytes.NewReader(data))
-		if err != nil {
-			common.ErrorStrResp(c, http.StatusBadRequest, "Invalid image format "+err.Error())
-			return
-		}
-		width := img.Bounds().Dx()
-		height := img.Bounds().Dy()
-
-		// 对上传的图片的文件名进行处理
-		file.Filename = random.RandomizeFileName(file.Filename)
-
-		targetFilePath := path.Join(config.Conf.DataImage.Dir, category, file.Filename)
-
-		imageData := &model.Image{
-			FileName:    file.Filename,
-			Width:       width,
-			Height:      height,
-			ShortLink:   random.String(6),
-			Path:        targetFilePath,
-			ContentType: file.Header.Get("Content-Type"),
-			Category:    category,
-		}
-		// 保存图片到数据库
-		err = op.CreateImage(imageData, data, targetFilePath)
-		if err != nil {
-			common.ErrorStrResp(c, http.StatusInternalServerError, "Failed to save image")
-			return
-		}
-	}
-	common.SuccessResp(c, "Uploads successful")
+	c.File(thumbnailPath)
 }

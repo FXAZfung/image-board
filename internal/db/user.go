@@ -39,10 +39,12 @@ func CreateUser(u *model.User) error {
 	return errors.WithStack(db.Create(u).Error)
 }
 
-// GetUserCount 获取用户数量
+// GetUserCount 获取用户数量同时要是为disable的用户
 func GetUserCount() (int64, error) {
 	var count int64
-	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
+	if err := db.Model(&model.User{
+		Disabled: false,
+	}).Count(&count).Error; err != nil {
 		return 0, errors.Wrapf(err, "failed get user count")
 	}
 	return count, nil

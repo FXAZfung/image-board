@@ -75,19 +75,3 @@ func HandleSettingItemHook(item *model.SettingItem) (hasHook bool, err error) {
 	}
 	return false, nil
 }
-
-// Category
-type CategoryHook func(category *model.Category) error
-
-var categoryHooks = map[string]CategoryHook{}
-
-func RegisterCategoryHook(key string, hook CategoryHook) {
-	categoryHooks[key] = hook
-}
-
-func HandleCategoryHook(category *model.Category) (hasHook bool, err error) {
-	if hook, ok := categoryHooks[category.Name]; ok {
-		return true, hook(category)
-	}
-	return false, nil
-}

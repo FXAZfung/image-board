@@ -2,8 +2,10 @@ package utils
 
 import (
 	log "github.com/sirupsen/logrus"
+	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // IsExist 判断文件是否存在
@@ -91,4 +93,28 @@ func GetStorageUsage(path string) (int64, error) {
 	})
 
 	return totalSize, err
+}
+
+// IsImage 判断文件是否为图片
+func IsImage(file *multipart.FileHeader) bool {
+	// 检查 Content-Type
+	contentType := file.Header.Get("Content-Type")
+	switch contentType {
+	case "image/jpeg", "image/jpg", "image/png", "image/gif",
+		"image/webp", "image/svg+xml", "image/tiff", "image/bmp":
+		// 继续检查文件扩展名作为二次验证
+	default:
+		return false
+	}
+
+	// 检查文件扩展名
+	filename := filepath.Base(file.Filename)
+	ext := strings.ToLower(filepath.Ext(filename))
+	validExtensions := map[string]bool{
+		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
+		".webp": true, ".svg": true, ".tiff": true, ".bmp": true,
+	}
+
+	// 同时验证 Content-Type 和扩展名
+	return validExtensions[ext]
 }
