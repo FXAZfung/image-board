@@ -67,7 +67,7 @@ func GetImagesByPage(page, pageSize int) ([]*model.Image, int64, error) {
 	if err := db.Model(&model.Image{}).Count(&count).Error; err != nil {
 		return nil, 0, errors.WithStack(errs.ErrImageCount)
 	}
-	if err := db.Preload("MainTag").Offset((page - 1) * pageSize).Limit(pageSize).Find(&images).Error; err != nil {
+	if err := db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&images).Error; err != nil {
 		return nil, 0, errors.WithStack(errs.ErrImageList)
 	}
 	return images, count, nil
@@ -191,7 +191,7 @@ func GetImageCount() (int64, error) {
 // GetRandomImage 随机获取图片
 func GetRandomImage() (*model.Image, error) {
 	var image model.Image
-	query := db.Preload("MainTag").Preload("Tags").Order("RANDOM()")
+	query := db.Preload("Tags").Order("RANDOM()")
 
 	if err := query.First(&image).Error; err != nil {
 		return nil, errors.WithStack(errs.ImageNotFound)

@@ -12,14 +12,16 @@ import (
 	"strconv"
 )
 
-// ListTags lists all tags with pagination
-// @Summary List tags
-// @Description Get a paginated list of all tags
-// @Tags tag
+// ListTags 列出所有标签（分页）
+// @Summary 分页获取标签列表
+// @Description 使用分页方式获取所有标签列表
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param page body model.PageReq true "Pagination parameters"
-// @Success 200 {object} common.PageResp{content=[]model.Tag} "Tags list and count"
+// @Param page body model.PageReq true "分页参数"
+// @Success 200 {object} common.Resp{data=common.PageResp{content=[]model.Tag}} "分页结果"
+// @Failure 400 {object} common.Resp "参数绑定错误"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/public/tags [post]
 func ListTags(c *gin.Context) {
 	var req model.PageReq
@@ -41,14 +43,15 @@ func ListTags(c *gin.Context) {
 	})
 }
 
-// GetTagByID gets a tag by its ID
-// @Summary Get tag by ID
-// @Description Get tag details by its ID
-// @Tags tag
+// GetTagByID 通过ID获取标签
+// @Summary 根据ID获取标签详情
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param id path int true "Tag ID"
-// @Success 200 {object} model.Tag "Tag details"
+// @Param id path int true "标签ID"
+// @Success 200 {object} common.Resp{data=model.Tag} "标签详情"
+// @Failure 400 {object} common.Resp "ID格式错误"
+// @Failure 404 {object} common.Resp "标签不存在"
 // @Router /api/public/tags/{id} [get]
 func GetTagByID(c *gin.Context) {
 	idStr := c.Param("id")
@@ -67,14 +70,15 @@ func GetTagByID(c *gin.Context) {
 	common.SuccessResp(c, tag)
 }
 
-// GetTagByName gets a tag by its name
-// @Summary Get tag by name
-// @Description Get tag details by its name
-// @Tags tag
+// GetTagByName 通过名称获取标签
+// @Summary 根据名称查询标签
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param name query string true "Tag name"
-// @Success 200 {object} model.Tag "Tag details"
+// @Param name query string true "标签名称"
+// @Success 200 {object} common.Resp{data=model.Tag} "标签详情"
+// @Failure 400 {object} common.Resp "名称参数缺失"
+// @Failure 404 {object} common.Resp "标签不存在"
 // @Router /api/public/tags/name [get]
 func GetTagByName(c *gin.Context) {
 	name := c.Query("name")
@@ -92,14 +96,15 @@ func GetTagByName(c *gin.Context) {
 	common.SuccessResp(c, tag)
 }
 
-// MostPopularTags gets the most used tags
-// @Summary Get popular tags
-// @Description Get the most popular tags by usage count
-// @Tags tag
+// MostPopularTags 获取最常用标签
+// @Summary 获取热门标签列表
+// @Description 根据使用次数降序排列获取最常用标签
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param limit query int false "Maximum number of tags to return" default(10)
-// @Success 200 {array} model.Tag "List of popular tags"
+// @Param limit query int false "返回数量限制" minimum(1) default(10)
+// @Success 200 {object} common.Resp{data=[]model.Tag} "标签列表"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/public/tags/popular [get]
 func MostPopularTags(c *gin.Context) {
 	limitStr := c.DefaultQuery("limit", "10")
@@ -117,15 +122,16 @@ func MostPopularTags(c *gin.Context) {
 	common.SuccessResp(c, tags)
 }
 
-// SearchTags searches tags by prefix
-// @Summary Search tags
-// @Description Search for tags that start with the given prefix
-// @Tags tag
+// SearchTags 标签前缀搜索
+// @Summary 根据前缀搜索标签
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param prefix query string true "Tag prefix to search for"
-// @Param limit query int false "Maximum number of results" default(20)
-// @Success 200 {array} model.Tag "List of matching tags"
+// @Param prefix query string true "搜索前缀"
+// @Param limit query int false "最大返回数量" minimum(1) default(20)
+// @Success 200 {object} common.Resp{data=[]model.Tag} "匹配的标签列表"
+// @Failure 400 {object} common.Resp "前缀参数缺失"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/public/tags/search [get]
 func SearchTags(c *gin.Context) {
 	prefix := c.Query("prefix")
@@ -149,16 +155,18 @@ func SearchTags(c *gin.Context) {
 	common.SuccessResp(c, tags)
 }
 
-// CreateTag creates a new tag
-// @Summary Create a new tag
-// @Description Create a new tag in the system
-// @Tags tag
+// CreateTag 创建新标签
+// @Summary 创建新标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param Authorization header string true "Bearer user token"
-// @Param tag body request.CreateTagReq true "Tag to create"
-// @Success 200 {object} model.Tag "Created tag"
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param tag body request.CreateTagReq true "标签创建参数"
+// @Success 200 {object} common.Resp{data=model.Tag} "已创建的标签"
+// @Failure 400 {object} common.Resp "参数错误/名称重复"
+// @Failure 401 {object} common.Resp "未授权"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/auth/tags [post]
 func CreateTag(c *gin.Context) {
 	var req request.CreateTagReq
@@ -193,17 +201,20 @@ func CreateTag(c *gin.Context) {
 	common.SuccessResp(c, tag)
 }
 
-// UpdateTag updates an existing tag
-// @Summary Update a tag
-// @Description Update an existing tag's information
-// @Tags tag
+// UpdateTag 更新标签
+// @Summary 更新标签信息
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param Authorization header string true "Bearer user token"
-// @Param id path int true "Tag ID"
-// @Param tag body request.CreateTagReq true "Updated tag information"
-// @Success 200 {object} model.Tag "Updated tag"
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "标签ID"
+// @Param tag body request.CreateTagReq true "更新后的标签信息"
+// @Success 200 {object} common.Resp{data=model.Tag} "更新后的标签"
+// @Failure 400 {object} common.Resp "参数错误"
+// @Failure 401 {object} common.Resp "未授权"
+// @Failure 404 {object} common.Resp "标签不存在"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/auth/tags/{id} [put]
 func UpdateTag(c *gin.Context) {
 	idStr := c.Param("id")
@@ -241,16 +252,20 @@ func UpdateTag(c *gin.Context) {
 	common.SuccessResp(c, tag)
 }
 
-// DeleteTag deletes a tag
-// @Summary Delete a tag
-// @Description Delete a tag and remove it from all associated images
-// @Tags tag
+// DeleteTag 删除标签
+// @Summary 删除标签
+// @Description 删除标签并移除与所有图片的关联
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param Authorization header string true "Bearer user token"
-// @Param id path int true "Tag ID"
-// @Success 200 {object} response.TagDeleteResponse "Tag deletion response"
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "标签ID"
+// @Success 200 {object} common.Resp{data=response.TagDeleteResponse} "删除结果"
+// @Failure 400 {object} common.Resp "ID格式错误"
+// @Failure 401 {object} common.Resp "未授权"
+// @Failure 404 {object} common.Resp "标签不存在"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/auth/tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
 	idStr := c.Param("id")
@@ -279,14 +294,16 @@ func DeleteTag(c *gin.Context) {
 	})
 }
 
-// GetTagsByImage gets all tags for an image
-// @Summary Get tags for image
-// @Description Get all tags associated with a specific image
-// @Tags tag
+// GetTagsByImage 获取图片标签
+// @Summary 获取图片关联标签
+// @Tags 标签
 // @Accept json
 // @Produce json
-// @Param image_id path int true "Image ID"
-// @Success 200 {array} model.Tag "List of tags"
+// @Param image_id path int true "图片ID"
+// @Success 200 {object} common.Resp{data=[]model.Tag} "标签列表"
+// @Failure 400 {object} common.Resp "ID格式错误"
+// @Failure 404 {object} common.Resp "图片不存在"
+// @Failure 500 {object} common.Resp "服务器内部错误"
 // @Router /api/public/tags/image/{image_id} [get]
 func GetTagsByImage(c *gin.Context) {
 	imageIDStr := c.Param("image_id")

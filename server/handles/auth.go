@@ -11,13 +11,13 @@ import (
 )
 
 type LoginReq struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" example:"admin" binding:"required"` // 用户名
+	Password string `json:"password" example:"admin" binding:"required"` // 密码
 }
 
 type LoginResp struct {
-	Token  string    `json:"token"`
-	Expire time.Time `json:"expire"`
+	Token  string    `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."` // JWT Token
+	Expire time.Time `json:"expire" example:"2023-10-01T12:00:00Z"`                   // Token 过期时间
 }
 
 var loginCache = cache.NewMemCache[int]()
@@ -29,11 +29,14 @@ var (
 // Login 登录
 // @Summary 登录
 // @Description 登录
-// @Tags auth
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param user body LoginReq true "用户信息"
 // @Success 200 {object} LoginResp "登录成功"
+// @Failure 400 {object} common.Resp "无效请求"
+// @Failure 429 {object} common.Resp "登录尝试次数过多"
+// @Failure 500 {object} common.Resp "生成 Token 失败"
 // @Router /api/public/login [post]
 func Login(c *gin.Context) {
 	var req LoginReq
@@ -83,11 +86,13 @@ func loginHash(c *gin.Context, req *LoginReq) {
 // Logout 登出
 // @Summary 登出
 // @Description 登出
-// @Tags auth
+// @Tags 认证
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Token"
-// @Success 200 {string} string "登出成功"
+// @Param Authorization header string true "Token 格式: {token}" default(<token>)
+// @Success 200 {object} common.Resp "登出成功"
+// @Failure 500 {object} common.Resp "令牌失效失败"
+// @Security ApiKeyAuth
 // @Router /api/auth/logout [get]
 func Logout(c *gin.Context) {
 	err := common.InvalidateToken(c.GetHeader("Authorization"))

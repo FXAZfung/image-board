@@ -5,14 +5,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -64,6 +64,11 @@ func UploadImage(file *multipart.FileHeader, user *model.User, req request.Uploa
 	}
 
 	image.IsPublic = req.IsPublic
+
+	err = op.AddTagsToImage(image.ID, req.Tags)
+	if err != nil {
+		return nil, err
+	}
 
 	// Save updated image metadata
 	if err := op.UpdateImage(image); err != nil {

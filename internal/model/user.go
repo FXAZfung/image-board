@@ -9,7 +9,7 @@ import (
 const (
 	GENERAL = iota
 	GUEST   // only one exists
-	ADMIN
+	ADMIN   // only one exists
 )
 
 type User struct {
@@ -19,25 +19,11 @@ type User struct {
 	Role     int    `json:"role"` // user's role
 	Disabled bool   `json:"disabled"`
 	// Determine permissions by bit
-	//   0: can see hidden files
-	//   1: can access without password
-	//   2: can add offline download tasks
-	//   3: can mkdir and upload
-	//   4: can rename
-	//   5: can move
-	//   6: can copy
-	//   7: can remove
-	//   8: webdav read
-	//   9: webdav write
 	Permission int32 `json:"permission"` // password hash
 }
 
 // ValidatePwdStaticHash 验证密码是否正确
 func (u *User) ValidatePwdStaticHash(password string) error {
-	//reqPassword, err := utils.EncryptPassword(password)
-	//if err != nil {
-	//	return errors.WithStack(errs.Internal)
-	//}
 	err := utils.ComparePassword(u.PwdHash, password)
 	if err != nil {
 		return errors.WithStack(errs.ErrUsernameOrPassword)

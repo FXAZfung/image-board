@@ -16,7 +16,7 @@ func initUser() {
 	admin, err := op.GetAdmin()
 	adminPassword := random.String(8)
 	envpass := os.Getenv("IMAGE_BOARD_ADMIN_PASSWORD")
-	if flags.Dev {
+	if flags.Dev || flags.Debug {
 		adminPassword = "admin"
 	} else if len(envpass) > 0 {
 		adminPassword = envpass

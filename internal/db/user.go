@@ -1,64 +1,97 @@
 package db
 
 import (
+	"github.com/FXAZfung/image-board/internal/errs"
 	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 )
 
-func GetUserByRole(role int) (*model.User, error) {
-	user := model.User{Role: role}
-	if err := db.Where(user).Take(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-// GetUserByName 根据用户名获取用户
-func GetUserByName(username string) (*model.User, error) {
-	user := model.User{Username: username}
-	if err := db.Where(user).First(&user).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed find user")
-	}
-	return &user, nil
-}
-
-// GetUserById 根据用户ID获取用户
+// GetUserById retrieves a user by their ID
 func GetUserById(id uint) (*model.User, error) {
 	var user model.User
 	if err := db.First(&user, id).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed get old user")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.WithStack(errs.ErrNotFound)
+		}
+		return nil, errors.WithStack(err)
 	}
 	return &user, nil
 }
 
-func UpdateUser(u *model.User) error {
-	return errors.WithStack(db.Save(u).Error)
+// GetUserByName retrieves a user by their username
+func GetUserByName(username string) (*model.User, error) {
+	var user model.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.WithStack(errs.ErrNotFound)
+		}
+		return nil, errors.WithStack(err)
+	}
+	return &user, nil
 }
 
-func CreateUser(u *model.User) error {
-	return errors.WithStack(db.Create(u).Error)
+// GetUserByRole retrieves a user by their role (admin, guest, etc.)
+func GetUserByRole(role int) (*model.User, error) {
+	var user model.User
+	if err := db.Where("role = ?", role).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.WithStack(errs.ErrNotFound)
+		}
+		return nil, errors.WithStack(err)
+	}
+	return &user, nil
 }
 
-// GetUserCount 获取用户数量同时要是为disable的用户
+// GetUsers retrieves users with pagination
+func GetUsers(page, perPage int) ([]model.User, int64, error) {
+	var users []model.User
+	var total int64
+
+	if err := db.Model(&model.User{}).Count(&total).Error; err != nil {
+		return nil, 0, errors.WithStack(err)
+	}
+
+	if err := db.Order("id ASC").
+		Offset((page - 1) * perPage).
+		Limit(perPage).
+		Find(&users).Error; err != nil {
+		return nil, 0, errors.WithStack(err)
+	}
+
+	return users, total, nil
+}
+
+// CreateUser creates a new user in the database
+func CreateUser(user *model.User) error {
+	// Check if user with same username already exists
+	var count int64
+	if err := db.Model(&model.User{}).Where("username = ?", user.Username).Count(&count).Error; err != nil {
+		return errors.WithStack(err)
+	}
+
+	if count > 0 {
+		return errors.WithStack(errs.ErrUserExist)
+	}
+
+	return db.Create(user).Error
+}
+
+// UpdateUser updates an existing user's information
+func UpdateUser(user *model.User) error {
+	return db.Save(user).Error
+}
+
+// DeleteUser deletes a user by their ID
+func DeleteUser(id uint) error {
+	return db.Delete(&model.User{}, id).Error
+}
+
+// GetUserCount returns the total number of users
 func GetUserCount() (int64, error) {
 	var count int64
-	if err := db.Model(&model.User{
-		Disabled: false,
-	}).Count(&count).Error; err != nil {
-		return 0, errors.Wrapf(err, "failed get user count")
+	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
+		return 0, errors.WithStack(err)
 	}
 	return count, nil
-}
-
-// GetUsers 分页获取用户
-func GetUsers(pageIndex, pageSize int) ([]model.User, int64, error) {
-	var users []model.User
-	var count int64
-	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
-		return nil, 0, errors.Wrapf(err, "failed get user count")
-	}
-	if err := db.Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
-		return nil, 0, errors.Wrapf(err, "failed get users")
-	}
-	return users, count, nil
 }

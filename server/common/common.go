@@ -29,7 +29,7 @@ func ErrorWithDataResp(c *gin.Context, code int, data interface{}, err error, l 
 			log.Errorf("%v", err)
 		}
 	}
-	c.JSON(200, Resp[interface{}]{
+	c.JSON(200, Resp{
 		Code:    code,
 		Message: hidePrivacy(err.Error()),
 		Data:    data,
@@ -41,7 +41,7 @@ func ErrorStrResp(c *gin.Context, code int, str string, l ...bool) {
 	if len(l) != 0 && l[0] {
 		log.Error(str)
 	}
-	c.JSON(200, Resp[interface{}]{
+	c.JSON(200, Resp{
 		Code:    code,
 		Message: hidePrivacy(str),
 		Data:    nil,
@@ -51,14 +51,14 @@ func ErrorStrResp(c *gin.Context, code int, str string, l ...bool) {
 
 func SuccessResp(c *gin.Context, data ...interface{}) {
 	if len(data) == 0 {
-		c.JSON(200, Resp[interface{}]{
+		c.JSON(200, Resp{
 			Code:    200,
 			Message: "success",
 			Data:    nil,
 		})
 		return
 	}
-	c.JSON(200, Resp[interface{}]{
+	c.JSON(200, Resp{
 		Code:    200,
 		Message: "success",
 		Data:    data[0],
