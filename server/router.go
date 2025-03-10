@@ -71,6 +71,9 @@ func Init(router *gin.Engine) {
 		// 图片上传和管理
 		authGroup.POST("/upload", handles.UploadImage)
 
+		// In the authenticated routes group
+		authGroup.POST("/images/:id/tags", handles.AddTagToImage)
+
 		// 图片操作
 		authImageGroup := authGroup.Group("/images")
 		{

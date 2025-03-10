@@ -65,11 +65,6 @@ func UploadImage(file *multipart.FileHeader, user *model.User, req request.Uploa
 
 	image.IsPublic = req.IsPublic
 
-	err = op.AddTagsToImage(image.ID, req.Tags)
-	if err != nil {
-		return nil, err
-	}
-
 	// Save updated image metadata
 	if err := op.UpdateImage(image); err != nil {
 		log.Printf("Warning: failed to update image metadata: %v", err)

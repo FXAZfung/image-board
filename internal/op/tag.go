@@ -162,8 +162,21 @@ func DeleteTag(tagID uint) error {
 	return nil
 }
 
+// AddTagToImage
+func AddTagToImage(imageID uint, tagName string) error {
+	if err := db.AddTagToImage(imageID, tagName); err != nil {
+		return err
+	}
+
+	// Invalidate image cache for this image
+	ImageCacheUpdate()
+
+	return nil
+}
+
 // AddTagsToImage adds tags to an image with cache updates
 func AddTagsToImage(imageID uint, tags []string) error {
+
 	if err := db.AddTagsToImage(imageID, tags); err != nil {
 		return err
 	}

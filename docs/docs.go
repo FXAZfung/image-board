@@ -644,16 +644,6 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "图片标签",
-                        "name": "tags",
-                        "in": "formData"
-                    },
-                    {
                         "maxLength": 255,
                         "type": "string",
                         "description": "图片描述",
@@ -2462,6 +2452,17 @@ const docTemplate = `{
                 }
             }
         },
+        "request.AddTagReq": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "request.AddTagsReq": {
             "type": "object",
             "required": [
@@ -2529,11 +2530,8 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean"
                 },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "tag_name": {
+                    "type": "string"
                 }
             }
         },

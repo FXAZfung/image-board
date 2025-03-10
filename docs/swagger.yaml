@@ -198,6 +198,13 @@ definitions:
     required:
     - username
     type: object
+  request.AddTagReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   request.AddTagsReq:
     properties:
       tags:
@@ -242,10 +249,8 @@ definitions:
         type: integer
       success:
         type: boolean
-      tags:
-        items:
-          type: integer
-        type: array
+      tag_name:
+        type: string
     type: object
   response.ImageUploadResponse:
     properties:
@@ -658,13 +663,6 @@ paths:
         name: image
         required: true
         type: file
-      - collectionFormat: csv
-        description: 图片标签
-        in: formData
-        items:
-          type: string
-        name: tags
-        type: array
       - description: 图片描述
         in: formData
         maxLength: 255

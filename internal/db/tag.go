@@ -99,62 +99,71 @@ func DeleteTag(tagID uint) error {
 	})
 }
 
+// AddTagToImage adds a single tag to an image
+func AddTagToImage(imageID uint, tagName string) error {
+	return AddTagsToImage(imageID, []string{tagName})
+}
+
 // AddTagsToImage adds tags to an image and handles the tag creation if needed
 func AddTagsToImage(imageID uint, tagNames []string) error {
 	if len(tagNames) == 0 {
-		return errors.WithStack(errs.ErrTagsEmpty)
+		return nil // Nothing to do if no tags provided
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// Check if image exists
+		// First verify the image exists
 		var image model.Image
 		if err := tx.First(&image, imageID).Error; err != nil {
-			return errors.WithStack(errs.ImageNotFound)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.WithStack(errs.ImageNotFound)
+			}
+			return errors.WithStack(err)
 		}
 
-		for _, tagName := range tagNames {
-			// Skip empty tag names
-			if tagName == "" {
-				continue
+		// Process each tag
+		for _, name := range tagNames {
+			if name == "" {
+				continue // Skip empty tag names
 			}
 
-			// Try to find or create tag
+			// Get or create the tag
 			var tag model.Tag
-			err := tx.Where("name = ?", tagName).First(&tag).Error
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					// Create new tag
-					tag = model.Tag{Name: tagName, Count: 0}
-					if err := tx.Create(&tag).Error; err != nil {
-						return errors.WithStack(err)
-					}
-				} else {
-					return errors.WithStack(err)
-				}
+			result := tx.Where("name = ?", name).FirstOrCreate(&tag, model.Tag{
+				Name:  name,
+				Count: 0, // Will be incremented below
+			})
+			if result.Error != nil {
+				return errors.WithStack(result.Error)
 			}
 
-			// Check if association already exists
+			// Check if association already exists to avoid duplicates
 			var count int64
-			if err := tx.Model(&model.ImageTag{}).Where("image_id = ? AND tag_id = ?", imageID, tag.ID).Count(&count).Error; err != nil {
+			if err := tx.Model(&model.ImageTag{}).
+				Where("image_id = ? AND tag_id = ?", imageID, tag.ID).
+				Count(&count).Error; err != nil {
 				return errors.WithStack(err)
 			}
 
-			// If association doesn't exist, create it and increment tag count
-			if count == 0 {
-				imageTag := model.ImageTag{
-					ImageID: imageID,
-					TagID:   tag.ID,
-				}
-
-				if err := tx.Create(&imageTag).Error; err != nil {
-					return errors.WithStack(err)
-				}
-
-				// Increment the tag count
-				if err := tx.Model(&tag).Update("count", tag.Count+1).Error; err != nil {
-					return errors.WithStack(err)
-				}
+			// Skip if already associated
+			if count > 0 {
+				continue
 			}
+
+			// Create the association
+			imageTag := model.ImageTag{
+				ImageID: imageID,
+				TagID:   tag.ID,
+			}
+			if err := tx.Create(&imageTag).Error; err != nil {
+				return errors.WithStack(err)
+			}
+
+			// Increment tag count
+			if err := tx.Model(&tag).Update("count", gorm.Expr("count + 1")).Error; err != nil {
+				return errors.WithStack(err)
+			}
+
+			log.Debugf("Added tag %s (ID: %d) to image %d", name, tag.ID, imageID)
 		}
 
 		return nil

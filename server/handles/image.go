@@ -153,7 +153,6 @@ func ListImages(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Param Authorization header string true "Bearer 用户令牌"
 // @Param image formData file true "图片文件（支持PNG/JPEG/GIF）"
-// @Param tags formData []string false "图片标签"
 // @Param description formData string false "图片描述" maxLength(255)
 // @Param is_public formData boolean false "是否公开" default(true)
 // @Success 200 {object} common.Resp{data=response.ImageUploadResponse} "上传成功"
@@ -311,6 +310,57 @@ func RemoveTagFromImage(c *gin.Context) {
 	}
 
 	common.SuccessResp(c, resp)
+}
+
+// AddTagToImage adds a single tag to an image
+// @Summary Add a tag to an image
+// @Description Adds a single tag to an existing image (requires authentication)
+// @Tags 图片
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path int true "Image ID" minimum(1)
+// @Param request body request.AddTagReq true "Tag to add"
+// @Success 200 {object} common.Resp{data=response.ImageTagResponse} "Tag added successfully"
+// @Failure 400 {object} common.Resp "Invalid request format"
+// @Failure 404 {object} common.Resp "Image not found"
+// @Failure 500 {object} common.Resp "Server error"
+// @Router /api/auth/images/{id}/tags [post]
+func AddTagToImage(c *gin.Context) {
+	// Parse image ID from URL
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Invalid image ID format")
+		return
+	}
+
+	// Bind request body
+	var req request.AddTagReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ErrorResp(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validate tag name
+	if req.Name == "" {
+		common.ErrorStrResp(c, http.StatusBadRequest, "Tag name cannot be empty")
+		return
+	}
+
+	// Add tag to image
+	if err := op.AddTagToImage(uint(id), req.Name); err != nil {
+		common.ErrorResp(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Return success response
+	common.SuccessResp(c, response.ImageTagResponse{
+		ImageID: uint(id),
+		TagName: req.Name,
+		Success: true,
+	})
 }
 
 // AddTagsToImage 添加图片标签
