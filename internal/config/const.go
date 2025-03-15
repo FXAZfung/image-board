@@ -12,18 +12,20 @@ const (
 
 	// image
 	ImageMaxSize = "image_max_size"
+	ImageTypes   = "image_types"
 
 	// Site
-	VERSION      = "version"
-	SiteTitle    = "site_title"
-	Announcement = "announcement"
-	RobotsTxt    = "robots_txt"
+	VERSION          = "version"
+	SiteTitle        = "site_title"
+	Announcement     = "announcement"
+	RobotsTxt        = "robots_txt"
+	IndexBackground  = "index_background"
+	IndexTitle       = "index_title"
+	IndexDescription = "index_description"
+	PageSize         = "page_size"
 
 	Logo    = "logo"
 	Favicon = "favicon"
-
-	// Preview
-	ImageTypes = "image_types"
 
 	// Gloabl
 	PrivacyRegs         = "privacy_regs"

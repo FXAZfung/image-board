@@ -24,7 +24,7 @@ func GetUserByName(username string) (*model.User, error) {
 	var user model.User
 	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.WithStack(errs.ErrNotFound)
+			return nil, errors.WithStack(errs.ErrUserNotFound)
 		}
 		return nil, errors.WithStack(err)
 	}
@@ -36,7 +36,7 @@ func GetUserByRole(role int) (*model.User, error) {
 	var user model.User
 	if err := db.Where("role = ?", role).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.WithStack(errs.ErrNotFound)
+			return nil, errors.WithStack(gorm.ErrRecordNotFound)
 		}
 		return nil, errors.WithStack(err)
 	}
