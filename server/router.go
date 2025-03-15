@@ -8,14 +8,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title Image Board API
-// @version 1.0
-// @description API for Image Board application
-// @BasePath /
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
-
 func Init(router *gin.Engine) {
 	// 处理跨域
 	Cors(router)
@@ -72,7 +64,7 @@ func Init(router *gin.Engine) {
 		authGroup.POST("/upload", handles.UploadImage)
 
 		// In the authenticated routes group
-		authGroup.POST("/images/:id/tags", handles.AddTagToImage)
+		authGroup.POST("/images/:id/tag", handles.AddTagToImage)
 
 		// 图片操作
 		authImageGroup := authGroup.Group("/images")

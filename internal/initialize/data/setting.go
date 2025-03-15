@@ -90,6 +90,8 @@ func InitialSettings() []model.SettingItem {
 		token = random.SecretKey()
 	}
 	initialSettingItems = []model.SettingItem{
+		// image settings
+		{Key: conf.ImageMaxSize, Value: "20", Type: conf.TypeNumber, Group: model.IMAGE},
 		// site settings
 		{Key: conf.VERSION, Value: "0.0.1", Type: conf.TypeString, Group: model.SITE, Flag: model.READONLY},
 		//{Key: conf.ApiUrl, Value: "", Type: conf.TypeString, Group: model.SITE},
@@ -98,7 +100,6 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.Announcement, Value: "https://github.com/FXAZfung/image-board", Type: conf.TypeText, Group: model.SITE},
 		{Key: "index_title", Value: "IM 图床", Type: conf.TypeString, Group: model.SITE},
 		{Key: "index_description", Value: "由 Go | Next 构建", Type: conf.TypeString, Group: model.SITE},
-		{Key: "pagination_type", Value: "all", Type: conf.TypeSelect, Options: "all,pagination,load_more,auto_load_more", Group: model.SITE},
 		{Key: "default_page_size", Value: "10", Type: conf.TypeNumber, Group: model.SITE},
 		//{Key: conf.AllowIndexed, Value: "false", Type: conf.TypeBool, Group: model.SITE},
 		//{Key: conf.AllowMounted, Value: "true", Type: conf.TypeBool, Group: model.SITE},

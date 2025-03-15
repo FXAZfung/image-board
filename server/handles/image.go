@@ -153,8 +153,6 @@ func ListImages(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Param Authorization header string true "Bearer 用户令牌"
 // @Param image formData file true "图片文件（支持PNG/JPEG/GIF）"
-// @Param description formData string false "图片描述" maxLength(255)
-// @Param is_public formData boolean false "是否公开" default(true)
 // @Success 200 {object} common.Resp{data=response.ImageUploadResponse} "上传成功"
 // @Failure 400 {object} common.Resp "文件无效/参数错误"
 // @Failure 401 {object} common.Resp "未授权"
@@ -193,8 +191,11 @@ func UploadImage(c *gin.Context) {
 
 	// Return success response
 	common.SuccessResp(c, response.ImageUploadResponse{
-		ID:   image.ID,
-		Path: image.FileName,
+		ID:            image.ID,
+		Path:          image.FileName,
+		FileName:      image.FileName,
+		OriginalName:  image.OriginalName,
+		ThumbnailPath: image.ThumbnailPath,
 	})
 }
 
@@ -326,7 +327,7 @@ func RemoveTagFromImage(c *gin.Context) {
 // @Failure 400 {object} common.Resp "Invalid request format"
 // @Failure 404 {object} common.Resp "Image not found"
 // @Failure 500 {object} common.Resp "Server error"
-// @Router /api/auth/images/{id}/tags [post]
+// @Router /api/auth/images/{id}/tag [post]
 func AddTagToImage(c *gin.Context) {
 	// Parse image ID from URL
 	idStr := c.Param("id")
@@ -344,13 +345,13 @@ func AddTagToImage(c *gin.Context) {
 	}
 
 	// Validate tag name
-	if req.Name == "" {
+	if req.Tag == "" {
 		common.ErrorStrResp(c, http.StatusBadRequest, "Tag name cannot be empty")
 		return
 	}
 
 	// Add tag to image
-	if err := op.AddTagToImage(uint(id), req.Name); err != nil {
+	if err := op.AddTagToImage(uint(id), req.Tag); err != nil {
 		common.ErrorResp(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -358,7 +359,7 @@ func AddTagToImage(c *gin.Context) {
 	// Return success response
 	common.SuccessResp(c, response.ImageTagResponse{
 		ImageID: uint(id),
-		TagName: req.Name,
+		TagName: req.Tag,
 		Success: true,
 	})
 }

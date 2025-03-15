@@ -6,9 +6,7 @@ import (
 
 // UploadImageReq 上传图片请求
 type UploadImageReq struct {
-	Image       *multipart.FileHeader `json:"-" form:"image" binding:"required"`
-	Description string                `json:"description" form:"description"`
-	IsPublic    bool                  `json:"is_public" form:"is_public"`
+	Image *multipart.FileHeader `json:"-" form:"image" binding:"required"`
 }
 
 // UpdateImageReq 更新图片请求

@@ -10,6 +10,9 @@ const (
 
 const (
 
+	// image
+	ImageMaxSize = "image_max_size"
+
 	// Site
 	VERSION      = "version"
 	SiteTitle    = "site_title"

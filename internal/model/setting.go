@@ -3,6 +3,7 @@ package model
 const (
 	SINGLE = iota
 	SITE
+	IMAGE
 	STYLE
 	PREVIEW
 	GLOBAL

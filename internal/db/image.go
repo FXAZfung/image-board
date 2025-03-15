@@ -60,16 +60,21 @@ func GetImageByHash(hash string) (*model.Image, error) {
 	return &image, nil
 }
 
-// GetImagesByPage 分页获取所有图片
-func GetImagesByPage(page, pageSize int) ([]*model.Image, int64, error) {
-	var images []*model.Image
+// GetImagesByPage retrieves paginated images with their tags
+func GetImagesByPage(page, perPage int) ([]*model.Image, int64, error) {
 	var count int64
 	if err := db.Model(&model.Image{}).Count(&count).Error; err != nil {
-		return nil, 0, errors.WithStack(errs.ErrImageCount)
+		return nil, 0, err
 	}
-	if err := db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&images).Error; err != nil {
-		return nil, 0, errors.WithStack(errs.ErrImageList)
+
+	var images []*model.Image
+	offset := (page - 1) * perPage
+
+	// Add Preload("Tags") to load the associated tags
+	if err := db.Preload("Tags").Offset(offset).Limit(perPage).Order("id desc").Find(&images).Error; err != nil {
+		return nil, 0, err
 	}
+
 	return images, count, nil
 }
 

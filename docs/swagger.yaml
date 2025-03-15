@@ -49,6 +49,8 @@ definitions:
         description: JWT Token
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
+      user:
+        $ref: '#/definitions/model.User'
     type: object
   handles.RegisterReq:
     properties:
@@ -200,10 +202,10 @@ definitions:
     type: object
   request.AddTagReq:
     properties:
-      name:
+      tag:
         type: string
     required:
-    - name
+    - tag
     type: object
   request.AddTagsReq:
     properties:
@@ -254,10 +256,19 @@ definitions:
     type: object
   response.ImageUploadResponse:
     properties:
+      file_name:
+        example: abc
+        type: string
       id:
         example: 1
         type: integer
+      original_name:
+        example: abc
+        type: string
       path:
+        example: abc123.jpg
+        type: string
+      thumbnail_path:
         example: abc123.jpg
         type: string
     type: object
@@ -376,6 +387,58 @@ paths:
       summary: 修改图片信息
       tags:
       - 认证
+  /api/auth/images/{id}/tag:
+    post:
+      consumes:
+      - application/json
+      description: Adds a single tag to an existing image (requires authentication)
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Image ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Tag to add
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.AddTagReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag added successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ImageTagResponse'
+              type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: Image not found
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: Add a tag to an image
+      tags:
+      - 图片
   /api/auth/images/{id}/tags:
     post:
       consumes:
@@ -663,16 +726,6 @@ paths:
         name: image
         required: true
         type: file
-      - description: 图片描述
-        in: formData
-        maxLength: 255
-        name: description
-        type: string
-      - default: true
-        description: 是否公开
-        in: formData
-        name: is_public
-        type: boolean
       produces:
       - application/json
       responses:

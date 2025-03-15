@@ -3,6 +3,7 @@ package handles
 import (
 	"github.com/FXAZfung/go-cache"
 	conf "github.com/FXAZfung/image-board/internal/config"
+	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/server/common"
 	"github.com/gin-gonic/gin"
@@ -16,8 +17,9 @@ type LoginReq struct {
 }
 
 type LoginResp struct {
-	Token  string    `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."` // JWT Token
-	Expire time.Time `json:"expire" example:"2023-10-01T12:00:00Z"`                   // Token 过期时间
+	Token  string      `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."` // JWT Token
+	Expire time.Time   `json:"expire" example:"2023-10-01T12:00:00Z"`                   // Token 过期时间
+	User   *model.User `json:"user"`
 }
 
 var loginCache = cache.NewMemCache[int]()
@@ -78,6 +80,7 @@ func loginHash(c *gin.Context, req *LoginReq) {
 	resp := &LoginResp{
 		Token:  token,
 		Expire: time.Now().Add(time.Duration(conf.Conf.TokenExpiresIn) * time.Hour),
+		User:   user,
 	}
 	common.SuccessResp(c, resp)
 	loginCache.Del(ip)

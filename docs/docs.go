@@ -170,6 +170,90 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/images/{id}/tag": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Adds a single tag to an existing image (requires authentication)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片"
+                ],
+                "summary": "Add a tag to an image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Image ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Tag to add",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AddTagReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag added successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.ImageTagResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "Image not found",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/images/{id}/tags": {
             "post": {
                 "security": [
@@ -642,20 +726,6 @@ const docTemplate = `{
                         "name": "image",
                         "in": "formData",
                         "required": true
-                    },
-                    {
-                        "maxLength": 255,
-                        "type": "string",
-                        "description": "图片描述",
-                        "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "是否公开",
-                        "name": "is_public",
-                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2239,6 +2309,9 @@ const docTemplate = `{
                     "description": "JWT Token",
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "user": {
+                    "$ref": "#/definitions/model.User"
                 }
             }
         },
@@ -2455,10 +2528,10 @@ const docTemplate = `{
         "request.AddTagReq": {
             "type": "object",
             "required": [
-                "name"
+                "tag"
             ],
             "properties": {
-                "name": {
+                "tag": {
                     "type": "string"
                 }
             }
@@ -2538,11 +2611,23 @@ const docTemplate = `{
         "response.ImageUploadResponse": {
             "type": "object",
             "properties": {
+                "file_name": {
+                    "type": "string",
+                    "example": "abc"
+                },
                 "id": {
                     "type": "integer",
                     "example": 1
                 },
+                "original_name": {
+                    "type": "string",
+                    "example": "abc"
+                },
                 "path": {
+                    "type": "string",
+                    "example": "abc123.jpg"
+                },
+                "thumbnail_path": {
                     "type": "string",
                     "example": "abc123.jpg"
                 }
