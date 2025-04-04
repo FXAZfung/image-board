@@ -1,14 +1,15 @@
 package handles
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/FXAZfung/go-cache"
 	conf "github.com/FXAZfung/image-board/internal/config"
 	"github.com/FXAZfung/image-board/internal/model"
 	"github.com/FXAZfung/image-board/internal/op"
 	"github.com/FXAZfung/image-board/server/common"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type LoginReq struct {
@@ -29,17 +30,17 @@ var (
 )
 
 // Login 登录
-// @Summary 登录
-// @Description 登录
+// @Summary 用户登录
+// @Description 通过用户名和密码登录系统并获取令牌
 // @Tags 认证
 // @Accept json
 // @Produce json
-// @Param user body LoginReq true "用户信息"
-// @Success 200 {object} LoginResp "登录成功"
-// @Failure 400 {object} common.Resp "无效请求"
-// @Failure 429 {object} common.Resp "登录尝试次数过多"
-// @Failure 500 {object} common.Resp "生成 Token 失败"
-// @Router /api/public/login [post]
+// @Param user body LoginReq true "用户登录信息"
+// @Success 200 {object} common.Resp{data=LoginResp} "登录成功，返回令牌信息"
+// @Failure 400 {object} common.Resp "无效请求或密码错误"
+// @Failure 429 {object} common.Resp "登录尝试次数过多，请稍后再试"
+// @Failure 500 {object} common.Resp "生成令牌失败"
+// @Router /api/auth/login [post]
 func Login(c *gin.Context) {
 	var req LoginReq
 	if err := c.ShouldBind(&req); err != nil {
@@ -87,16 +88,17 @@ func loginHash(c *gin.Context, req *LoginReq) {
 }
 
 // Logout 登出
-// @Summary 登出
-// @Description 登出
+// @Summary 用户登出
+// @Description 使当前用户令牌失效
 // @Tags 认证
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Token 格式: {token}" default(<token>)
-// @Success 200 {object} common.Resp "登出成功"
-// @Failure 500 {object} common.Resp "令牌失效失败"
 // @Security ApiKeyAuth
-// @Router /api/auth/logout [get]
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Success 200 {object} common.Resp "登出成功"
+// @Failure 401 {object} common.Resp "未授权，缺少有效令牌"
+// @Failure 500 {object} common.Resp "令牌失效操作失败"
+// @Router /api/auth/logout [post]
 func Logout(c *gin.Context) {
 	err := common.InvalidateToken(c.GetHeader("Authorization"))
 	if err != nil {

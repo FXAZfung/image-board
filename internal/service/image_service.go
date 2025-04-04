@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/chai2010/webp"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"image"
@@ -18,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FXAZfung/image-board/internal/config"
@@ -30,7 +32,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ImageService handles all image processing operations
+const (
+	maxConcurrentProcessing = 3 // 根据CPU核心数调整
+)
+
+var (
+	processingSem = make(chan struct{}, maxConcurrentProcessing)
+)
+
 type ImageService struct {
 	baseDir        string
 	thumbnailWidth int
@@ -38,8 +47,11 @@ type ImageService struct {
 	allowedExts    []string
 }
 
-// NewImageService creates a new image service instance
 func NewImageService() *ImageService {
+	if config.Conf.DataImage.Dir == "" {
+		log.Fatal("Image storage directory not configured")
+	}
+
 	return &ImageService{
 		baseDir:        config.Conf.DataImage.Dir,
 		thumbnailWidth: 300,
@@ -48,143 +60,268 @@ func NewImageService() *ImageService {
 	}
 }
 
-// UploadImage handles the complete image upload process from handler
-func UploadImage(file *multipart.FileHeader, user *model.User, req request.UploadImageReq) (*model.Image, error) {
-	service := NewImageService()
-
-	// Process the upload
-	image, err := service.processUpload(file, user)
-	if err != nil {
-		return nil, err
+// UploadImage 入口函数
+func UploadImage(file *multipart.FileHeader, user *model.User) (*model.Image, error) {
+	startTime := time.Now()
+	logFields := log.Fields{
+		"user_id":   user.ID,
+		"file_name": file.Filename,
+		"file_size": file.Size,
+		"operation": "upload",
 	}
 
-	// Save updated image metadata
-	if err := op.UpdateImage(image); err != nil {
-		log.Printf("Warning: failed to update image metadata: %v", err)
+	defer func() {
+		log.WithFields(logFields).
+			WithField("duration", time.Since(startTime)).
+			Info("Upload processing completed")
+	}()
+
+	service := NewImageService()
+	image, err := service.processUpload(file, user, logFields)
+	if err != nil {
+		log.WithFields(logFields).Errorf("Upload failed: %v", err)
+		return nil, err
 	}
 
 	return image, nil
 }
 
-// processUpload handles the core upload functionality
-func (s *ImageService) processUpload(file *multipart.FileHeader, user *model.User) (*model.Image, error) {
-	// Validation
-	if file == nil {
-		return nil, errors.New("no file provided")
+type uploadContext struct {
+	file          *multipart.FileHeader
+	user          *model.User
+	fileData      []byte
+	hash          string
+	fileExt       string
+	filePath      string
+	thumbnailPath string
+	webpPath      string
+	modImage      *model.Image
+	logFields     log.Fields
+}
+
+func (s *ImageService) processUpload(file *multipart.FileHeader, user *model.User, logFields log.Fields) (*model.Image, error) {
+	ctx := &uploadContext{
+		file:      file,
+		user:      user,
+		logFields: logFields,
 	}
 
-	if !utils.IsImage(file) {
-		return nil, errors.New("invalid file type, only images are accepted")
+	steps := []func() error{
+		ctx.validateInput,
+		ctx.readAndHashFile,
+		ctx.checkDuplicate,
+		ctx.validateExtension,
+		ctx.generateFilePaths,
+		ctx.createStorageDirs,
+		ctx.processImageData,
+		ctx.createImageModel,
+		ctx.saveToDatabase,
 	}
 
-	// Open and read file
-	f, err := file.Open()
+	for _, step := range steps {
+		if err := step(); err != nil {
+			return nil, s.wrapError("upload processing failed", err)
+		}
+	}
+
+	return ctx.modImage, nil
+}
+
+func (ctx *uploadContext) validateInput() error {
+	if ctx.file == nil {
+		return errors.New("no file provided")
+	}
+	if !utils.IsImage(ctx.file) {
+		return errors.New("invalid file type")
+	}
+	return nil
+}
+
+func (ctx *uploadContext) readAndHashFile() error {
+	hash := sha256.New()
+	f, err := ctx.file.Open()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return fmt.Errorf("file open failed: %w", err)
 	}
 	defer f.Close()
 
-	fileData, err := io.ReadAll(f)
+	// 流式读取同时计算哈希
+	tee := io.TeeReader(f, hash)
+	data, err := io.ReadAll(tee)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file data: %w", err)
+		return fmt.Errorf("file read failed: %w", err)
 	}
 
-	// Generate hash for deduplication
-	hash := sha256.Sum256(fileData)
-	hashString := hex.EncodeToString(hash[:])
+	ctx.fileData = data
+	ctx.hash = hex.EncodeToString(hash.Sum(nil))
+	return nil
+}
 
-	// Check for duplicate image
-	if existingImage, err := op.GetImageByHash(hashString); err == nil {
-		return existingImage, nil
+func (ctx *uploadContext) checkDuplicate() error {
+	if existing, err := op.GetImageByHash(ctx.hash); err == nil {
+		log.WithFields(ctx.logFields).Info("Duplicate image found")
+		ctx.modImage = existing
+		return errors.New("duplicate image") // 特殊错误类型触发提前返回
 	}
+	return nil
+}
 
-	// Process file metadata
-	fileExt := strings.ToLower(filepath.Ext(file.Filename))
-	if !s.isAllowedExtension(fileExt) {
-		return nil, errors.New("invalid file extension")
+func (s *ImageService) wrapError(msg string, err error) error {
+	return fmt.Errorf("%s: %w", msg, errors.Cause(err))
+}
+
+func (ctx *uploadContext) validateExtension() error {
+	ctx.fileExt = strings.ToLower(filepath.Ext(ctx.file.Filename))
+	for _, ext := range NewImageService().allowedExts {
+		if ctx.fileExt == ext {
+			return nil
+		}
 	}
+	return fmt.Errorf("invalid file extension: %s", ctx.fileExt)
+}
 
-	contentType := http.DetectContentType(fileData)
-	newFileName := hashString + fileExt
-
-	// Create storage paths using date-based directory structure
+func (ctx *uploadContext) generateFilePaths() error {
 	now := time.Now()
-	dirPath := filepath.Join(s.baseDir, fmt.Sprintf("%d/%02d", now.Year(), now.Month()))
-	if err := os.MkdirAll(dirPath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create storage directory: %w", err)
+	datePath := fmt.Sprintf("%d/%02d", now.Year(), now.Month())
+	baseDir := filepath.Join(NewImageService().baseDir, datePath)
+
+	ctx.filePath = filepath.Join(baseDir, ctx.hash+ctx.fileExt)
+	ctx.thumbnailPath = filepath.Join(baseDir, "thumbnails", ctx.hash+ctx.fileExt)
+	ctx.webpPath = GetWebPPath(filepath.Join(baseDir, "webp", ctx.hash+ctx.fileExt))
+	return nil
+}
+
+func (ctx *uploadContext) createStorageDirs() error {
+	dirs := []string{
+		filepath.Dir(ctx.filePath),
+		filepath.Dir(ctx.thumbnailPath),
+		filepath.Dir(ctx.webpPath),
 	}
 
-	filePath := filepath.Join(dirPath, newFileName)
-	thumbnailDir := filepath.Join(dirPath, "thumbnails")
-	thumbnailPath := filepath.Join(thumbnailDir, newFileName)
-
-	// Extract image metadata
-	imgInfo, _, err := s.getImageInfo(bytes.NewReader(fileData))
-	if err != nil {
-		return nil, fmt.Errorf("invalid image data: %w", err)
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("directory creation failed: %w", err)
+		}
 	}
+	return nil
+}
 
-	// Process files concurrently
+func (ctx *uploadContext) processImageData() error {
 	g, _ := errgroup.WithContext(context.Background())
 
-	// Save original file
+	// 保存原始文件
 	g.Go(func() error {
-		return os.WriteFile(filePath, fileData, 0644)
+		return safeWriteFile(ctx.filePath, ctx.fileData)
 	})
 
-	// Create thumbnail
-	var thumbnailErr error
+	// 生成缩略图
 	g.Go(func() error {
-		if err := os.MkdirAll(thumbnailDir, 0755); err != nil {
-			thumbnailErr = err
-			return nil // Continue even if thumbnail dir creation fails
-		}
-
-		// Generate thumbnail
-		thumbnailErr = s.createThumbnail(fileData, thumbnailPath)
-		return nil // Continue even if thumbnail creation fails
+		processingSem <- struct{}{}
+		defer func() { <-processingSem }()
+		return NewImageService().createThumbnail(ctx.fileData, ctx.thumbnailPath)
 	})
 
-	// Wait for file operations to complete
+	// 生成WebP
+	g.Go(func() error {
+		processingSem <- struct{}{}
+		defer func() { <-processingSem }()
+		return NewImageService().convertToWebP(ctx.fileData, ctx.webpPath)
+	})
+
 	if err := g.Wait(); err != nil {
-		// Clean up on error
-		os.Remove(filePath)
-		os.Remove(thumbnailPath)
-		return nil, fmt.Errorf("file processing failed: %w", err)
+		ctx.cleanupFiles()
+		return fmt.Errorf("file processing failed: %w", err)
+	}
+	return nil
+}
+
+func safeWriteFile(path string, data []byte) error {
+	tmpPath := path + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
+}
+
+func (ctx *uploadContext) createImageModel() error {
+	img, _, err := image.Decode(bytes.NewReader(ctx.fileData))
+	if err != nil {
+		return fmt.Errorf("image decode failed: %w", err)
 	}
 
-	// Create image model
-	image := &model.Image{
-		FileName:     newFileName,
-		OriginalName: file.Filename,
-		Hash:         hashString,
-		ContentType:  contentType,
-		Size:         file.Size,
-		Path:         filePath,
-		Width:        imgInfo.Bounds().Dx(),
-		Height:       imgInfo.Bounds().Dy(),
-		UserID:       user.ID,
-		IsPublic:     true, // Default to public
+	ctx.modImage = &model.Image{
+		FileName:      ctx.hash + ctx.fileExt,
+		OriginalName:  ctx.file.Filename,
+		Hash:          ctx.hash,
+		ContentType:   http.DetectContentType(ctx.fileData),
+		Size:          ctx.file.Size,
+		Path:          ctx.filePath,
+		ThumbnailPath: ctx.thumbnailPath,
+		WebpPath:      ctx.webpPath,
+		Width:         img.Bounds().Dx(),
+		Height:        img.Bounds().Dy(),
+		UserID:        ctx.user.ID,
+		IsPublic:      true,
+	}
+	return nil
+}
+
+func (ctx *uploadContext) saveToDatabase() error {
+	if err := op.CreateImage(ctx.modImage); err != nil {
+		ctx.cleanupFiles()
+		return fmt.Errorf("database save failed: %w", err)
+	}
+	return nil
+}
+
+func (ctx *uploadContext) cleanupFiles() {
+	files := []string{ctx.filePath, ctx.thumbnailPath, ctx.webpPath}
+	var wg sync.WaitGroup
+
+	for _, path := range files {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+				log.WithFields(ctx.logFields).Warnf("Cleanup failed for %s: %v", p, err)
+			}
+		}(path)
+	}
+	wg.Wait()
+}
+
+// 其他方法保持类似结构，以下是修改后的关键函数：
+
+func (s *ImageService) createThumbnail(imgData []byte, path string) error {
+	src, err := imaging.Decode(bytes.NewReader(imgData))
+	if err != nil {
+		return fmt.Errorf("thumbnail decode failed: %w", err)
 	}
 
-	// Set thumbnail path if successful
-	if thumbnailErr == nil {
-		image.ThumbnailPath = thumbnailPath
-	} else {
-		log.Printf("Warning: thumbnail generation failed: %v", thumbnailErr)
+	thumbnail := imaging.Resize(src, s.thumbnailWidth, 0, imaging.Lanczos)
+	if err := imaging.Save(thumbnail, path, imaging.JPEGQuality(s.quality)); err != nil {
+		return fmt.Errorf("thumbnail save failed: %w", err)
+	}
+	return nil
+}
+
+func (s *ImageService) convertToWebP(imgData []byte, path string) error {
+	src, err := imaging.Decode(bytes.NewReader(imgData))
+	if err != nil {
+		return fmt.Errorf("webp decode failed: %w", err)
 	}
 
-	// Save to database
-	if err := op.CreateImage(image); err != nil {
-		// Clean up files on database error
-		os.Remove(filePath)
-		if image.ThumbnailPath != "" {
-			os.Remove(image.ThumbnailPath)
-		}
-		return nil, fmt.Errorf("failed to save image to database: %w", err)
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("webp create failed: %w", err)
 	}
+	defer f.Close()
 
-	return image, nil
+	options := &webp.Options{Quality: float32(s.quality)}
+	if err := webp.Encode(f, src, options); err != nil {
+		return fmt.Errorf("webp encode failed: %w", err)
+	}
+	return nil
 }
 
 // UpdateImage updates image metadata and properties
@@ -252,34 +389,15 @@ func DeleteImage(imageID uint) (*response.ImageDeleteResponse, error) {
 	}, nil
 }
 
-// AddTagsToImage adds tags to an image
-func AddTagsToImage(imageID uint, tags []string) (*response.ImageTagResponse, error) {
-	// Verify image exists
-	if _, err := op.GetImageByID(imageID); err != nil {
-		return nil, fmt.Errorf("image not found: %w", err)
-	}
-
-	// Add tags
-	if err := op.AddTagsToImage(imageID, tags); err != nil {
-		return nil, fmt.Errorf("failed to add tags: %w", err)
-	}
-
-	return &response.ImageTagResponse{
-		ImageID: imageID,
-		Success: true,
-	}, nil
-}
-
 // RemoveTagFromImage removes a tag from an image
-func RemoveTagFromImage(imageID, tagID uint) (*response.ImageTagResponse, error) {
+func RemoveTagFromImage(imageID, tagID uint) (*model.Tag, error) {
 	// Remove the tag
-	if err := op.RemoveTagFromImage(imageID, tagID); err != nil {
+	tag, err := op.RemoveTagFromImage(imageID, tagID)
+	if err != nil {
 		return nil, fmt.Errorf("failed to remove tag: %w", err)
 	}
 
-	return &response.ImageTagResponse{
-		ImageID: imageID,
-		Success: true}, nil
+	return tag, err
 }
 
 // isAllowedExtension checks if the file extension is allowed
@@ -302,19 +420,10 @@ func (s *ImageService) getImageInfo(r io.Reader) (image.Image, string, error) {
 	return img, format, nil
 }
 
-// createThumbnail generates and saves a thumbnail
-func (s *ImageService) createThumbnail(imgData []byte, thumbnailPath string) error {
-	// Read image
-	src, err := imaging.Decode(bytes.NewReader(imgData))
-	if err != nil {
-		return err
-	}
-
-	// Resize keeping aspect ratio
-	thumbnail := imaging.Resize(src, s.thumbnailWidth, 0, imaging.Lanczos)
-
-	// Save thumbnail
-	return imaging.Save(thumbnail, thumbnailPath, imaging.JPEGQuality(s.quality))
+// GetWebPPath 根据原图路径生成WebP格式图片的路径
+func GetWebPPath(imagePath string) string {
+	ext := filepath.Ext(imagePath)
+	return strings.TrimSuffix(imagePath, ext) + ".webp"
 }
 
 // GetThumbnailPath returns the thumbnail path for an original path
@@ -323,61 +432,4 @@ func GetThumbnailPath(originalPath string) string {
 	filename := filepath.Base(originalPath)
 	thumbnailDir := filepath.Join(dir, "thumbnails")
 	return filepath.Join(thumbnailDir, filename)
-}
-
-// RegenerateMissingThumbnails creates thumbnails for images that don't have them
-func RegenerateMissingThumbnails() (int, error) {
-	images, _, err := op.GetImagesByPage(1, 1000) // Process in batches
-	if err != nil {
-		return 0, err
-	}
-
-	service := NewImageService()
-	count := 0
-
-	for _, img := range images {
-		// Skip if thumbnail exists and file exists
-		if img.ThumbnailPath != "" && utils.IsExist(img.ThumbnailPath) {
-			continue
-		}
-
-		// Skip if original doesn't exist
-		if !utils.IsExist(img.Path) {
-			continue
-		}
-
-		// Create thumbnail directory
-		thumbnailDir := filepath.Join(filepath.Dir(img.Path), "thumbnails")
-		if err := os.MkdirAll(thumbnailDir, 0755); err != nil {
-			log.Printf("Failed to create thumbnail directory for %s: %v", img.FileName, err)
-			continue
-		}
-
-		// Set thumbnail path
-		thumbnailPath := filepath.Join(thumbnailDir, filepath.Base(img.Path))
-
-		// Read original file
-		fileData, err := os.ReadFile(img.Path)
-		if err != nil {
-			log.Printf("Failed to read original image %s: %v", img.FileName, err)
-			continue
-		}
-
-		// Create thumbnail
-		if err := service.createThumbnail(fileData, thumbnailPath); err != nil {
-			log.Printf("Failed to create thumbnail for %s: %v", img.FileName, err)
-			continue
-		}
-
-		// Update database record
-		img.ThumbnailPath = thumbnailPath
-		if err := op.UpdateImage(img); err != nil {
-			log.Printf("Failed to update thumbnail path for %s: %v", img.FileName, err)
-			continue
-		}
-
-		count++
-	}
-
-	return count, nil
 }

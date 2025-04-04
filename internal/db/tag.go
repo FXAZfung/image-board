@@ -100,74 +100,32 @@ func DeleteTag(tagID uint) error {
 }
 
 // AddTagToImage adds a single tag to an image
-func AddTagToImage(imageID uint, tagName string) error {
-	return AddTagsToImage(imageID, []string{tagName})
-}
-
-// AddTagsToImage adds tags to an image and handles the tag creation if needed
-func AddTagsToImage(imageID uint, tagNames []string) error {
-	if len(tagNames) == 0 {
-		return nil // Nothing to do if no tags provided
+func AddTagToImage(imageID uint, tagName string) (*model.Tag, error) {
+	tag, created, err := GetOrCreateTag(tagName)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return db.Transaction(func(tx *gorm.DB) error {
-		// First verify the image exists
-		var image model.Image
-		if err := tx.First(&image, imageID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return errors.WithStack(errs.ImageNotFound)
-			}
-			return errors.WithStack(err)
-		}
+	if created {
+		tag.Count = 1
+	} else {
+		tag.Count++
+	}
 
-		// Process each tag
-		for _, name := range tagNames {
-			if name == "" {
-				continue // Skip empty tag names
-			}
+	if err := db.Save(tag).Error; err != nil {
+		return nil, errors.WithStack(err)
+	}
 
-			// Get or create the tag
-			var tag model.Tag
-			result := tx.Where("name = ?", name).FirstOrCreate(&tag, model.Tag{
-				Name:  name,
-				Count: 0, // Will be incremented below
-			})
-			if result.Error != nil {
-				return errors.WithStack(result.Error)
-			}
+	imageTag := &model.ImageTag{
+		ImageID: imageID,
+		TagID:   tag.ID,
+	}
 
-			// Check if association already exists to avoid duplicates
-			var count int64
-			if err := tx.Model(&model.ImageTag{}).
-				Where("image_id = ? AND tag_id = ?", imageID, tag.ID).
-				Count(&count).Error; err != nil {
-				return errors.WithStack(err)
-			}
+	if err := db.Create(imageTag).Error; err != nil {
+		return nil, errors.WithStack(err)
+	}
 
-			// Skip if already associated
-			if count > 0 {
-				continue
-			}
-
-			// Create the association
-			imageTag := model.ImageTag{
-				ImageID: imageID,
-				TagID:   tag.ID,
-			}
-			if err := tx.Create(&imageTag).Error; err != nil {
-				return errors.WithStack(err)
-			}
-
-			// Increment tag count
-			if err := tx.Model(&tag).Update("count", gorm.Expr("count + 1")).Error; err != nil {
-				return errors.WithStack(err)
-			}
-
-			log.Debugf("Added tag %s (ID: %d) to image %d", name, tag.ID, imageID)
-		}
-
-		return nil
-	})
+	return tag, nil
 }
 
 // GetMostPopularTags retrieves the most used tags

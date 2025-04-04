@@ -23,78 +23,51 @@ func Init(router *gin.Engine) {
 		imagesGroup.GET("/thumbnail/:name", handles.GetThumbnailByName)
 	}
 
-	// 公共API路由（无需认证）
-	publicGroup := router.Group("/api/public")
+	api := router.Group("/api")
+
+	// 登录
+	authApi := api.Group("/auth")
 	{
-		// 登录相关
-		publicGroup.POST("/login", handles.Login)
-
-		// 公共设置
-		publicGroup.GET("/settings", handles.PublicSettings)
-
-		// 图片相关
-		imageGroup := publicGroup.Group("/images")
-		{
-			imageGroup.GET("/:id", handles.GetImageByID)
-			imageGroup.POST("", handles.ListImages)
-			imageGroup.POST("/tag", handles.GetImagesByTag)
-			imageGroup.GET("/count", handles.GetImageCount)
-		}
-
-		// Public tag routes
-		tagGroup := publicGroup.Group("/tags")
-		{
-			tagGroup.POST("", handles.ListTags)
-			tagGroup.GET("/:id", handles.GetTagByID)
-			tagGroup.GET("/name", handles.GetTagByName)
-			tagGroup.GET("/popular", handles.MostPopularTags)
-			tagGroup.GET("/search", handles.SearchTags)
-			tagGroup.GET("/image/:image_id", handles.GetTagsByImage)
-		}
+		authApi.POST("/login", handles.Login)
+		authApi.POST("/logout", handles.Logout).Use(middleware.AuthMiddleware)
 	}
 
-	// 需要认证的API路由
-	authGroup := router.Group("/api/auth")
-	authGroup.Use(middleware.AuthMiddleware)
+	// 图片
+	imageApi := api.Group("/image")
 	{
-		// 登出
-		authGroup.GET("/logout", handles.Logout)
-
-		// 图片上传和管理
-		authGroup.POST("/upload", handles.UploadImage)
-
-		// In the authenticated routes group
-		authGroup.POST("/images/:id/tag", handles.AddTagToImage)
-
-		// 图片操作
-		authImageGroup := authGroup.Group("/images")
+		imageApiAuth := imageApi.Group("").Use(middleware.AuthMiddleware)
 		{
-			authImageGroup.PUT("/:id", handles.UpdateImage)
-			authImageGroup.DELETE("/:id", handles.DeleteImage)
-
-			// 标签操作
-			authImageGroup.POST("/:id/tags", handles.AddTagsToImage)
-			authImageGroup.DELETE("/:id/tags/:tag_id", handles.RemoveTagFromImage)
+			imageApiAuth.POST("/upload", handles.UploadImage)
+			imageApiAuth.POST("/delete", handles.DeleteImage)
+			imageApiAuth.POST("/tag/add", handles.AddTagToImage)
+			imageApiAuth.POST("/tag/remove", handles.RemoveTagFromImage)
 		}
-
-		// Auth required tag routes
-		authTagGroup := authGroup.Group("/tags")
-		{
-			authTagGroup.POST("", handles.CreateTag)
-			authTagGroup.PUT("/:id", handles.UpdateTag)
-			authTagGroup.DELETE("/:id", handles.DeleteTag)
-		}
+		imageApi.POST("/list", handles.ListImages)
+		imageApi.GET("/count", handles.GetImageCount)
+		imageApi.POST("/tag/list", handles.GetImagesByTag)
 	}
 
-	// 私有API路由（需要认证）
-	privateGroup := router.Group("/api/private")
-	privateGroup.Use(middleware.AuthMiddleware)
+	// 设置
+	settingApi := api.Group("/setting")
 	{
-		// 设置相关
-		privateGroup.GET("/setting", handles.GetSetting)
-		privateGroup.POST("/setting", handles.SaveSettings)
-		privateGroup.GET("/settings", handles.ListSettings)
-		privateGroup.DELETE("/setting", handles.DeleteSetting)
+		settingApi.GET("", handles.PublicSettings)
+		settingApiAuth := settingApi.Group("").Use(middleware.AuthMiddleware)
+		{
+			//settingApiAuth.GET("/name", handles.GetSetting)
+			settingApiAuth.POST("/save", handles.SaveSettings)
+			settingApiAuth.GET("/list", handles.ListSettings)
+			//settingApiAuth.DELETE("/delete", handles.DeleteSetting)
+		}
+	}
+	// 标签
+	tagApi := api.Group("/tag")
+	{
+		tagApi.POST("/list", handles.ListTags)
+		tagApi.GET("/popular", handles.MostPopularTags)
+		tagApi.GET("/search", handles.SearchTags)
+		tagApi.GET("/image/:image_id", handles.GetTagsByImage)
+		tagApi.GET("/name", handles.GetTagByName)
+		tagApi.GET("/:id", handles.GetTagByID)
 	}
 }
 

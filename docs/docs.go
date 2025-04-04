@@ -19,165 +19,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/auth/images/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "更新图片描述、可见性等元数据（需要登录）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "修改图片信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新参数",
-                        "name": "image",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.UpdateImageReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新后的图片信息",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/model.Image"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "403": {
-                        "description": "无修改权限",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "图片不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "永久删除图片及其关联数据（需要登录）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "删除图片",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "删除结果",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.ImageDeleteResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "403": {
-                        "description": "无删除权限",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "图片不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/images/{id}/tag": {
+        "/api/auth/login": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Adds a single tag to an existing image (requires authentication)",
+                "description": "通过用户名和密码登录系统并获取令牌",
                 "consumes": [
                     "application/json"
                 ],
@@ -185,38 +29,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "图片"
+                    "认证"
                 ],
-                "summary": "Add a tag to an image",
+                "summary": "用户登录",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Image ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Tag to add",
-                        "name": "request",
+                        "description": "用户登录信息",
+                        "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.AddTagReq"
+                            "$ref": "#/definitions/handles.LoginReq"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Tag added successfully",
+                        "description": "登录成功，返回令牌信息",
                         "schema": {
                             "allOf": [
                                 {
@@ -226,7 +55,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.ImageTagResponse"
+                                            "$ref": "#/definitions/handles.LoginResp"
                                         }
                                     }
                                 }
@@ -234,174 +63,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request format",
+                        "description": "无效请求或密码错误",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
-                    "404": {
-                        "description": "Image not found",
+                    "429": {
+                        "description": "登录尝试次数过多，请稍后再试",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
                     "500": {
-                        "description": "Server error",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/images/{id}/tags": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "为图片添加一个或多个标签（需要登录）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "为图片添加标签",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "标签列表",
-                        "name": "tags",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.AddTagsReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "添加结果",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.ImageTagResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "图片不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/images/{id}/tags/{tag_id}": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "从图片中移除指定标签（需要登录）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "移除图片关联标签",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "标签ID",
-                        "name": "tag_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "操作结果",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.ImageTagResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "ID格式错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "图片或标签不存在",
+                        "description": "生成令牌失败",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
@@ -410,13 +84,13 @@ const docTemplate = `{
             }
         },
         "/api/auth/logout": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "登出",
+                "description": "使当前用户令牌失效",
                 "consumes": [
                     "application/json"
                 ],
@@ -426,12 +100,11 @@ const docTemplate = `{
                 "tags": [
                     "认证"
                 ],
-                "summary": "登出",
+                "summary": "用户登出",
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "\u003ctoken\u003e",
-                        "description": "Token 格式: {token}",
+                        "description": "Bearer 用户令牌",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -444,329 +117,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
-                    "500": {
-                        "description": "令牌失效失败",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/tags": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "标签"
-                ],
-                "summary": "创建新标签",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "标签创建参数",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.CreateTagReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "已创建的标签",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/model.Tag"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误/名称重复",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
                     "401": {
-                        "description": "未授权",
+                        "description": "未授权，缺少有效令牌",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
                     "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/tags/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "标签"
-                ],
-                "summary": "更新标签信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "标签ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新后的标签信息",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.CreateTagReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新后的标签",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/model.Tag"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "标签不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "删除标签并移除与所有图片的关联",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "标签"
-                ],
-                "summary": "删除标签",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "标签ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "删除结果",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.TagDeleteResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "ID格式错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "标签不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/upload": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "上传图片文件并添加元数据（需要登录）",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "上传新图片",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "图片文件（支持PNG/JPEG/GIF）",
-                        "name": "image",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "上传成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.ImageUploadResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "文件无效/参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "413": {
-                        "description": "文件过大",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "500": {
-                        "description": "上传失败",
+                        "description": "令牌失效操作失败",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
@@ -1198,51 +556,52 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/private/setting": {
+        "/api/image/count": {
             "get": {
-                "description": "获取设置",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "获取系统中的图片总量",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "setting"
+                    "图片"
                 ],
-                "summary": "获取设置",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "key",
-                        "name": "key",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "keys",
-                        "name": "keys",
-                        "in": "query"
-                    }
-                ],
+                "summary": "获取图片统计",
                 "responses": {
                     "200": {
-                        "description": "设置",
+                        "description": "统计结果",
                         "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "统计失败",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/image/delete": {
             "post": {
-                "description": "保存设置",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "永久删除图片及其关联数据（需要登录）",
                 "consumes": [
                     "application/json"
                 ],
@@ -1250,143 +609,74 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "setting"
+                    "图片"
                 ],
-                "summary": "保存设置",
+                "summary": "删除图片",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token",
+                        "description": "Bearer 用户令牌",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "设置",
-                        "name": "settings",
+                        "description": "删除参数",
+                        "name": "image",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.SettingItem"
-                            }
+                            "$ref": "#/definitions/request.ImageDeleteReq"
                         }
-                    }
-                ],
-                "responses": {}
-            },
-            "delete": {
-                "description": "删除设置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "setting"
-                ],
-                "summary": "删除设置",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "key",
-                        "name": "key",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {}
-            }
-        },
-        "/api/private/setting/token": {
-            "post": {
-                "description": "重置token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "setting"
-                ],
-                "summary": "重置token",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "删除结果",
                         "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.ImageDeleteResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数格式错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权，需要登录",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "403": {
+                        "description": "无删除权限",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "图片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
                         }
                     }
                 }
             }
         },
-        "/api/private/settings": {
-            "get": {
-                "description": "列出设置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "setting"
-                ],
-                "summary": "列出设置",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "group",
-                        "name": "group",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "groups",
-                        "name": "groups",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "设置列表",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.SettingItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/images": {
+        "/api/image/list": {
             "post": {
                 "description": "分页获取所有图片基本信息",
                 "consumes": [
@@ -1459,19 +749,45 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/images/count": {
-            "get": {
-                "description": "获取系统中的图片总量",
+        "/api/image/tag/add": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "给现有图片添加一个标签（需要登录）",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "图片"
                 ],
-                "summary": "获取图片统计",
+                "summary": "添加图片标签",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "添加标签请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AddTagReq"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "统计结果",
+                        "description": "添加成功",
                         "schema": {
                             "allOf": [
                                 {
@@ -1481,15 +797,33 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.ImageCountResponse"
+                                            "$ref": "#/definitions/response.ImageTagResponse"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "请求格式无效",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权，需要登录",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "图片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
                     "500": {
-                        "description": "统计失败",
+                        "description": "服务器错误",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
@@ -1497,7 +831,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/images/tag": {
+        "/api/image/tag/list": {
             "post": {
                 "description": "分页获取包含指定标签的所有图片",
                 "consumes": [
@@ -1564,7 +898,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "标签参数缺失",
+                        "description": "标签参数缺失或格式错误",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
@@ -1574,13 +908,24 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
                     }
                 }
             }
         },
-        "/api/public/images/{id}": {
-            "get": {
-                "description": "根据ID获取图片详细信息，包括标签等元数据",
+        "/api/image/tag/remove": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "从图片中移除指定标签（需要登录）",
                 "consumes": [
                     "application/json"
                 ],
@@ -1590,20 +935,108 @@ const docTemplate = `{
                 "tags": [
                     "图片"
                 ],
-                "summary": "根据ID获取图片详情",
+                "summary": "移除图片标签",
                 "parameters": [
                     {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "id",
-                        "in": "path",
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "移除标签请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.RemoveTagReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "操作结果",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.ImageTagResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权，需要登录",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "图片或标签不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/image/upload": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传图片文件并添加元数据（需要登录）",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片"
+                ],
+                "summary": "上传新图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "图片文件（支持PNG/JPEG/GIF）",
+                        "name": "image",
+                        "in": "formData",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "图片详细信息",
+                        "description": "上传成功",
                         "schema": {
                             "allOf": [
                                 {
@@ -1621,65 +1054,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "ID格式错误",
+                        "description": "文件无效/参数错误",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
-                    "404": {
-                        "description": "图片不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/login": {
-            "post": {
-                "description": "登录",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "登录",
-                "parameters": [
-                    {
-                        "description": "用户信息",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handles.LoginReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "登录成功",
-                        "schema": {
-                            "$ref": "#/definitions/handles.LoginResp"
-                        }
-                    },
-                    "400": {
-                        "description": "无效请求",
+                    "401": {
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
-                    "429": {
-                        "description": "登录尝试次数过多",
+                    "413": {
+                        "description": "文件过大",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
                     },
                     "500": {
-                        "description": "生成 Token 失败",
+                        "description": "上传失败",
                         "schema": {
                             "$ref": "#/definitions/common.Resp"
                         }
@@ -1751,9 +1144,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/settings": {
+        "/api/setting": {
             "get": {
-                "description": "获取公共设置",
+                "description": "获取所有公开的系统设置",
                 "consumes": [
                     "application/json"
                 ],
@@ -1761,23 +1154,443 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "setting"
+                    "设置"
                 ],
                 "summary": "获取公共设置",
                 "responses": {
                     "200": {
-                        "description": "公共设置",
+                        "description": "公共设置键值对",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "获取设置失败",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
                         }
                     }
                 }
             }
         },
-        "/api/public/tags": {
+        "/api/setting/delete": {
+            "delete": {
+                "description": "删除设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "设置"
+                ],
+                "summary": "删除设置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "key",
+                        "name": "key",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/setting/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "按分组列出系统设置项（需要认证）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "设置"
+                ],
+                "summary": "获取系统设置列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设置分组ID",
+                        "name": "group",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "多个设置分组ID，逗号分隔",
+                        "name": "groups",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置项列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.SettingItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数格式错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权，需要登录",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/setting/save": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "保存一组系统设置项",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "设置"
+                ],
+                "summary": "保存系统设置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "设置项列表",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SettingItem"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "保存成功",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权，需要登录",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "保存失败",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/setting/setting": {
+            "get": {
+                "description": "获取设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "设置"
+                ],
+                "summary": "获取设置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "key",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "keys",
+                        "name": "keys",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/setting/token": {
+            "post": {
+                "description": "重置token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "设置"
+                ],
+                "summary": "重置token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tag/delete/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除标签并移除与所有图片的关联",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "标签"
+                ],
+                "summary": "删除标签",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除结果",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.TagDeleteResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "ID格式错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "标签不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tag/image/{image_id}": {
+            "get": {
+                "description": "获取指定图片关联的所有标签",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "标签"
+                ],
+                "summary": "获取图片关联标签",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "图片ID",
+                        "name": "image_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "标签列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Resp"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.Tag"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "ID格式错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "404": {
+                        "description": "图片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.Resp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tag/list": {
             "post": {
                 "description": "使用分页方式获取所有标签列表",
                 "consumes": [
@@ -1850,72 +1663,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/tags/image/{image_id}": {
+        "/api/tag/name": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "标签"
-                ],
-                "summary": "获取图片关联标签",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "图片ID",
-                        "name": "image_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "标签列表",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/common.Resp"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/model.Tag"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "ID格式错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "404": {
-                        "description": "图片不存在",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/common.Resp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/tags/name": {
-            "get": {
+                "description": "通过标签名称查询标签信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -1969,7 +1719,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/tags/popular": {
+        "/api/tag/popular": {
             "get": {
                 "description": "根据使用次数降序排列获取最常用标签",
                 "consumes": [
@@ -2023,8 +1773,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/tags/search": {
+        "/api/tag/search": {
             "get": {
+                "description": "通过名称前缀模糊搜索标签",
                 "consumes": [
                     "application/json"
                 ],
@@ -2089,8 +1840,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/tags/{id}": {
+        "/api/tag/{id}": {
             "get": {
+                "description": "查询指定ID的标签完整信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -2421,6 +2173,9 @@ const docTemplate = `{
                     "description": "浏览次数",
                     "type": "integer"
                 },
+                "webp_path": {
+                    "type": "string"
+                },
                 "width": {
                     "type": "integer"
                 }
@@ -2528,56 +2283,41 @@ const docTemplate = `{
         "request.AddTagReq": {
             "type": "object",
             "required": [
+                "id",
                 "tag"
             ],
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "tag": {
                     "type": "string"
                 }
             }
         },
-        "request.AddTagsReq": {
+        "request.ImageDeleteReq": {
             "type": "object",
             "required": [
-                "tags"
+                "id"
             ],
             "properties": {
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "id": {
+                    "type": "integer"
                 }
             }
         },
-        "request.CreateTagReq": {
+        "request.RemoveTagReq": {
             "type": "object",
             "required": [
-                "name"
+                "image_id",
+                "tag_id"
             ],
             "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "request.UpdateImageReq": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
+                "image_id": {
+                    "type": "integer"
                 },
-                "is_public": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "response.ImageCountResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer",
-                    "example": 42
+                "tag_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -2605,31 +2345,6 @@ const docTemplate = `{
                 },
                 "tag_name": {
                     "type": "string"
-                }
-            }
-        },
-        "response.ImageUploadResponse": {
-            "type": "object",
-            "properties": {
-                "file_name": {
-                    "type": "string",
-                    "example": "abc"
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "original_name": {
-                    "type": "string",
-                    "example": "abc"
-                },
-                "path": {
-                    "type": "string",
-                    "example": "abc123.jpg"
-                },
-                "thumbnail_path": {
-                    "type": "string",
-                    "example": "abc123.jpg"
                 }
             }
         },

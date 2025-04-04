@@ -168,20 +168,43 @@ func DeleteImage(imageID uint) error {
 }
 
 // RemoveTagFromImage 从图片中移除标签
-func RemoveTagFromImage(imageID uint, tagID uint) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		// 删除关联
-		if err := tx.Where("image_id = ? AND tag_id = ?", imageID, tagID).Delete(&model.ImageTag{}).Error; err != nil {
-			return err
+func RemoveTagFromImage(imageID uint, tagID uint) (*model.Tag, error) {
+	// 先获取标签信息，用户返回，然后执行事务
+	var tag model.Tag
+	if err := db.First(&tag, tagID).Error; err != nil {
+		return nil, errors.WithStack(errs.ErrTagNotFound)
+	}
+	db.Transaction(func(tx *gorm.DB) error {
+		// 检查图片是否存在
+		var image model.Image
+		if err := tx.First(&image, imageID).Error; err != nil {
+			return errors.WithStack(errs.ImageNotFound)
+		}
+
+		// 检查标签是否存在
+		var tag model.Tag
+		if err := tx.First(&tag, tagID).Error; err != nil {
+			return errors.WithStack(errs.ErrTagNotFound)
+		}
+
+		// 检查图片和标签的关联是否存在
+		var imageTag model.ImageTag
+		if err := tx.Where("image_id = ? AND tag_id = ?", imageID, tagID).First(&imageTag).Error; err != nil {
+			return errors.WithStack(errs.ErrTagNotFound)
+		}
+
+		// 删除标签和图片的关联
+		if err := tx.Delete(&imageTag).Error; err != nil {
+			return errors.WithStack(err)
 		}
 
 		// 减少标签计数
-		var tag model.Tag
-		if err := tx.First(&tag, tagID).Error; err != nil {
-			return err
+		if err := tx.Model(&tag).Update("count", tag.Count-1).Error; err != nil {
+			return errors.WithStack(err)
 		}
-		return tx.Model(&tag).Update("count", tag.Count-1).Error
+		return nil
 	})
+	return &tag, nil
 }
 
 // GetImageCount 获取图片总数

@@ -89,6 +89,11 @@ var (
 	ErrUserNotAuthorized  = errors.New("user not authorized")
 )
 
+// String errors
+var (
+	ErrEmptyString = errors.New("string is empty")
+)
+
 // NewErr wrap constant error with an extra message
 // use errors.Is(err1, StorageNotFound) to check if err belongs to any internal error
 func NewErr(err error, format string, a ...any) error {

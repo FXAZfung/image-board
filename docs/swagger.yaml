@@ -128,6 +128,8 @@ definitions:
       view_count:
         description: 浏览次数
         type: integer
+      webp_path:
+        type: string
       width:
         type: integer
     type: object
@@ -202,39 +204,30 @@ definitions:
     type: object
   request.AddTagReq:
     properties:
+      id:
+        type: integer
       tag:
         type: string
     required:
+    - id
     - tag
     type: object
-  request.AddTagsReq:
+  request.ImageDeleteReq:
     properties:
-      tags:
-        items:
-          type: string
-        type: array
-    required:
-    - tags
-    type: object
-  request.CreateTagReq:
-    properties:
-      name:
-        type: string
-    required:
-    - name
-    type: object
-  request.UpdateImageReq:
-    properties:
-      description:
-        type: string
-      is_public:
-        type: boolean
-    type: object
-  response.ImageCountResponse:
-    properties:
-      count:
-        example: 42
+      id:
         type: integer
+    required:
+    - id
+    type: object
+  request.RemoveTagReq:
+    properties:
+      image_id:
+        type: integer
+      tag_id:
+        type: integer
+    required:
+    - image_id
+    - tag_id
     type: object
   response.ImageDeleteResponse:
     properties:
@@ -252,24 +245,6 @@ definitions:
       success:
         type: boolean
       tag_name:
-        type: string
-    type: object
-  response.ImageUploadResponse:
-    properties:
-      file_name:
-        example: abc
-        type: string
-      id:
-        example: 1
-        type: integer
-      original_name:
-        example: abc
-        type: string
-      path:
-        example: abc123.jpg
-        type: string
-      thumbnail_path:
-        example: abc123.jpg
         type: string
     type: object
   response.TagDeleteResponse:
@@ -294,255 +269,52 @@ info:
   title: Image Board API
   version: "1.0"
 paths:
-  /api/auth/images/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 永久删除图片及其关联数据（需要登录）
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 图片ID
-        in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 删除结果
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ImageDeleteResponse'
-              type: object
-        "403":
-          description: 无删除权限
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 图片不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 删除图片
-      tags:
-      - 认证
-    put:
-      consumes:
-      - application/json
-      description: 更新图片描述、可见性等元数据（需要登录）
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 图片ID
-        in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      - description: 更新参数
-        in: body
-        name: image
-        required: true
-        schema:
-          $ref: '#/definitions/request.UpdateImageReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 更新后的图片信息
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/model.Image'
-              type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "403":
-          description: 无修改权限
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 图片不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 修改图片信息
-      tags:
-      - 认证
-  /api/auth/images/{id}/tag:
+  /api/auth/login:
     post:
       consumes:
       - application/json
-      description: Adds a single tag to an existing image (requires authentication)
+      description: 通过用户名和密码登录系统并获取令牌
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: Image ID
-        in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      - description: Tag to add
+      - description: 用户登录信息
         in: body
-        name: request
+        name: user
         required: true
         schema:
-          $ref: '#/definitions/request.AddTagReq'
+          $ref: '#/definitions/handles.LoginReq'
       produces:
       - application/json
       responses:
         "200":
-          description: Tag added successfully
+          description: 登录成功，返回令牌信息
           schema:
             allOf:
             - $ref: '#/definitions/common.Resp'
             - properties:
                 data:
-                  $ref: '#/definitions/response.ImageTagResponse'
+                  $ref: '#/definitions/handles.LoginResp'
               type: object
         "400":
-          description: Invalid request format
+          description: 无效请求或密码错误
           schema:
             $ref: '#/definitions/common.Resp'
-        "404":
-          description: Image not found
+        "429":
+          description: 登录尝试次数过多，请稍后再试
           schema:
             $ref: '#/definitions/common.Resp'
         "500":
-          description: Server error
+          description: 生成令牌失败
           schema:
             $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: Add a tag to an image
-      tags:
-      - 图片
-  /api/auth/images/{id}/tags:
-    post:
-      consumes:
-      - application/json
-      description: 为图片添加一个或多个标签（需要登录）
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 图片ID
-        in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      - description: 标签列表
-        in: body
-        name: tags
-        required: true
-        schema:
-          $ref: '#/definitions/request.AddTagsReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 添加结果
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ImageTagResponse'
-              type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 图片不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 为图片添加标签
-      tags:
-      - 认证
-  /api/auth/images/{id}/tags/{tag_id}:
-    delete:
-      consumes:
-      - application/json
-      description: 从图片中移除指定标签（需要登录）
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 图片ID
-        in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      - description: 标签ID
-        in: path
-        minimum: 1
-        name: tag_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 操作结果
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ImageTagResponse'
-              type: object
-        "400":
-          description: ID格式错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 图片或标签不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 移除图片关联标签
+      summary: 用户登录
       tags:
       - 认证
   /api/auth/logout:
-    get:
+    post:
       consumes:
       - application/json
-      description: 登出
+      description: 使当前用户令牌失效
       parameters:
-      - default: <token>
-        description: 'Token 格式: {token}'
+      - description: Bearer 用户令牌
         in: header
         name: Authorization
         required: true
@@ -554,209 +326,17 @@ paths:
           description: 登出成功
           schema:
             $ref: '#/definitions/common.Resp'
-        "500":
-          description: 令牌失效失败
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 登出
-      tags:
-      - 认证
-  /api/auth/tags:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 标签创建参数
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/request.CreateTagReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 已创建的标签
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/model.Tag'
-              type: object
-        "400":
-          description: 参数错误/名称重复
-          schema:
-            $ref: '#/definitions/common.Resp'
         "401":
-          description: 未授权
+          description: 未授权，缺少有效令牌
           schema:
             $ref: '#/definitions/common.Resp'
         "500":
-          description: 服务器内部错误
+          description: 令牌失效操作失败
           schema:
             $ref: '#/definitions/common.Resp'
       security:
       - ApiKeyAuth: []
-      summary: 创建新标签
-      tags:
-      - 标签
-  /api/auth/tags/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除标签并移除与所有图片的关联
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 标签ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 删除结果
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.TagDeleteResponse'
-              type: object
-        "400":
-          description: ID格式错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 标签不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 删除标签
-      tags:
-      - 标签
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 标签ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 更新后的标签信息
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/request.CreateTagReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 更新后的标签
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/model.Tag'
-              type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 标签不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 更新标签信息
-      tags:
-      - 标签
-  /api/auth/upload:
-    post:
-      consumes:
-      - multipart/form-data
-      description: 上传图片文件并添加元数据（需要登录）
-      parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 图片文件（支持PNG/JPEG/GIF）
-        in: formData
-        name: image
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 上传成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ImageUploadResponse'
-              type: object
-        "400":
-          description: 文件无效/参数错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "413":
-          description: 文件过大
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "500":
-          description: 上传失败
-          schema:
-            $ref: '#/definitions/common.Resp'
-      security:
-      - ApiKeyAuth: []
-      summary: 上传新图片
+      summary: 用户登出
       tags:
       - 认证
   /api/auth/user/info:
@@ -1018,133 +598,79 @@ paths:
       summary: 获取用户总数
       tags:
       - 认证
-  /api/private/setting:
-    delete:
-      consumes:
-      - application/json
-      description: 删除设置
-      parameters:
-      - description: Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: key
-        in: query
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses: {}
-      summary: 删除设置
-      tags:
-      - setting
+  /api/image/count:
     get:
-      consumes:
-      - application/json
-      description: 获取设置
-      parameters:
-      - description: Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: key
-        in: query
-        name: key
-        type: string
-      - description: keys
-        in: query
-        name: keys
-        type: string
+      description: 获取系统中的图片总量
       produces:
       - application/json
       responses:
         "200":
-          description: 设置
+          description: 统计结果
           schema:
-            type: string
-      summary: 获取设置
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  type: integer
+              type: object
+        "500":
+          description: 统计失败
+          schema:
+            $ref: '#/definitions/common.Resp'
+      summary: 获取图片统计
       tags:
-      - setting
+      - 图片
+  /api/image/delete:
     post:
       consumes:
       - application/json
-      description: 保存设置
+      description: 永久删除图片及其关联数据（需要登录）
       parameters:
-      - description: Token
+      - description: Bearer 用户令牌
         in: header
         name: Authorization
         required: true
         type: string
-      - description: 设置
+      - description: 删除参数
         in: body
-        name: settings
+        name: image
         required: true
         schema:
-          items:
-            $ref: '#/definitions/model.SettingItem'
-          type: array
-      produces:
-      - application/json
-      responses: {}
-      summary: 保存设置
-      tags:
-      - setting
-  /api/private/setting/token:
-    post:
-      consumes:
-      - application/json
-      description: 重置token
-      parameters:
-      - description: Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
+          $ref: '#/definitions/request.ImageDeleteReq'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 删除结果
           schema:
-            type: string
-      summary: 重置token
-      tags:
-      - setting
-  /api/private/settings:
-    get:
-      consumes:
-      - application/json
-      description: 列出设置
-      parameters:
-      - description: Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: group
-        in: query
-        name: group
-        type: string
-      - description: groups
-        in: query
-        name: groups
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 设置列表
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ImageDeleteResponse'
+              type: object
+        "400":
+          description: 参数格式错误
           schema:
-            items:
-              $ref: '#/definitions/model.SettingItem'
-            type: array
-      summary: 列出设置
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权，需要登录
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "403":
+          description: 无删除权限
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: 图片不存在
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除图片
       tags:
-      - setting
-  /api/public/images:
+      - 图片
+  /api/image/list:
     post:
       consumes:
       - application/json
@@ -1186,64 +712,57 @@ paths:
       summary: 分页获取图片列表
       tags:
       - 图片
-  /api/public/images/{id}:
-    get:
+  /api/image/tag/add:
+    post:
       consumes:
       - application/json
-      description: 根据ID获取图片详细信息，包括标签等元数据
+      description: 给现有图片添加一个标签（需要登录）
       parameters:
-      - description: 图片ID
-        in: path
-        minimum: 1
-        name: id
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
         required: true
-        type: integer
+        type: string
+      - description: 添加标签请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.AddTagReq'
       produces:
       - application/json
       responses:
         "200":
-          description: 图片详细信息
+          description: 添加成功
           schema:
             allOf:
             - $ref: '#/definitions/common.Resp'
             - properties:
                 data:
-                  $ref: '#/definitions/model.Image'
+                  $ref: '#/definitions/response.ImageTagResponse'
               type: object
         "400":
-          description: ID格式错误
+          description: 请求格式无效
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权，需要登录
           schema:
             $ref: '#/definitions/common.Resp'
         "404":
           description: 图片不存在
           schema:
             $ref: '#/definitions/common.Resp'
-      summary: 根据ID获取图片详情
-      tags:
-      - 图片
-  /api/public/images/count:
-    get:
-      description: 获取系统中的图片总量
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 统计结果
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ImageCountResponse'
-              type: object
         "500":
-          description: 统计失败
+          description: 服务器错误
           schema:
             $ref: '#/definitions/common.Resp'
-      summary: 获取图片统计
+      security:
+      - ApiKeyAuth: []
+      summary: 添加图片标签
       tags:
       - 图片
-  /api/public/images/tag:
+  /api/image/tag/list:
     post:
       consumes:
       - application/json
@@ -1281,50 +800,119 @@ paths:
                     type: object
               type: object
         "400":
-          description: 标签参数缺失
+          description: 标签参数缺失或格式错误
           schema:
             $ref: '#/definitions/common.Resp'
         "404":
           description: 标签不存在
           schema:
             $ref: '#/definitions/common.Resp'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/common.Resp'
       summary: 根据标签获取图片
       tags:
       - 图片
-  /api/public/login:
+  /api/image/tag/remove:
     post:
       consumes:
       - application/json
-      description: 登录
+      description: 从图片中移除指定标签（需要登录）
       parameters:
-      - description: 用户信息
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 移除标签请求
         in: body
-        name: user
+        name: request
         required: true
         schema:
-          $ref: '#/definitions/handles.LoginReq'
+          $ref: '#/definitions/request.RemoveTagReq'
       produces:
       - application/json
       responses:
         "200":
-          description: 登录成功
+          description: 操作结果
           schema:
-            $ref: '#/definitions/handles.LoginResp'
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.ImageTagResponse'
+              type: object
         "400":
-          description: 无效请求
+          description: 请求参数错误
           schema:
             $ref: '#/definitions/common.Resp'
-        "429":
-          description: 登录尝试次数过多
+        "401":
+          description: 未授权，需要登录
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: 图片或标签不存在
           schema:
             $ref: '#/definitions/common.Resp'
         "500":
-          description: 生成 Token 失败
+          description: 服务器错误
           schema:
             $ref: '#/definitions/common.Resp'
-      summary: 登录
+      security:
+      - ApiKeyAuth: []
+      summary: 移除图片标签
       tags:
-      - 认证
+      - 图片
+  /api/image/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传图片文件并添加元数据（需要登录）
+      parameters:
+      - description: 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 图片文件（支持PNG/JPEG/GIF）
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Image'
+              type: object
+        "400":
+          description: 文件无效/参数错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "413":
+          description: 文件过大
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: 上传失败
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: 上传新图片
+      tags:
+      - 图片
   /api/public/register:
     post:
       consumes:
@@ -1364,24 +952,321 @@ paths:
       summary: 注册新用户
       tags:
       - 用户
-  /api/public/settings:
+  /api/setting:
     get:
       consumes:
       - application/json
-      description: 获取公共设置
+      description: 获取所有公开的系统设置
       produces:
       - application/json
       responses:
         "200":
-          description: 公共设置
+          description: 公共设置键值对
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "500":
+          description: 获取设置失败
+          schema:
+            $ref: '#/definitions/common.Resp'
       summary: 获取公共设置
       tags:
-      - setting
-  /api/public/tags:
+      - 设置
+  /api/setting/delete:
+    delete:
+      consumes:
+      - application/json
+      description: 删除设置
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: key
+        in: query
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 删除设置
+      tags:
+      - 设置
+  /api/setting/list:
+    get:
+      consumes:
+      - application/json
+      description: 按分组列出系统设置项（需要认证）
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 设置分组ID
+        in: query
+        name: group
+        type: string
+      - description: 多个设置分组ID，逗号分隔
+        in: query
+        name: groups
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置项列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.SettingItem'
+                  type: array
+              type: object
+        "400":
+          description: 参数格式错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权，需要登录
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取系统设置列表
+      tags:
+      - 设置
+  /api/setting/save:
+    post:
+      consumes:
+      - application/json
+      description: 保存一组系统设置项
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 设置项列表
+        in: body
+        name: settings
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.SettingItem'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 保存成功
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "400":
+          description: 请求格式错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权，需要登录
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: 保存失败
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: 保存系统设置
+      tags:
+      - 设置
+  /api/setting/setting:
+    get:
+      consumes:
+      - application/json
+      description: 获取设置
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: key
+        in: query
+        name: key
+        type: string
+      - description: keys
+        in: query
+        name: keys
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置
+          schema:
+            type: string
+      summary: 获取设置
+      tags:
+      - 设置
+  /api/setting/token:
+    post:
+      consumes:
+      - application/json
+      description: 重置token
+      parameters:
+      - description: Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: 重置token
+      tags:
+      - 设置
+  /api/tag/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 查询指定ID的标签完整信息
+      parameters:
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标签详情
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Tag'
+              type: object
+        "400":
+          description: ID格式错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: 标签不存在
+          schema:
+            $ref: '#/definitions/common.Resp'
+      summary: 根据ID获取标签详情
+      tags:
+      - 标签
+  /api/tag/delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除标签并移除与所有图片的关联
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除结果
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.TagDeleteResponse'
+              type: object
+        "400":
+          description: ID格式错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: 标签不存在
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除标签
+      tags:
+      - 标签
+  /api/tag/image/{image_id}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定图片关联的所有标签
+      parameters:
+      - description: 图片ID
+        in: path
+        name: image_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标签列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Resp'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Tag'
+                  type: array
+              type: object
+        "400":
+          description: ID格式错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "404":
+          description: 图片不存在
+          schema:
+            $ref: '#/definitions/common.Resp'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.Resp'
+      summary: 获取图片关联标签
+      tags:
+      - 标签
+  /api/tag/list:
     post:
       consumes:
       - application/json
@@ -1423,82 +1308,11 @@ paths:
       summary: 分页获取标签列表
       tags:
       - 标签
-  /api/public/tags/{id}:
+  /api/tag/name:
     get:
       consumes:
       - application/json
-      parameters:
-      - description: 标签ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 标签详情
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  $ref: '#/definitions/model.Tag'
-              type: object
-        "400":
-          description: ID格式错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 标签不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-      summary: 根据ID获取标签详情
-      tags:
-      - 标签
-  /api/public/tags/image/{image_id}:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: 图片ID
-        in: path
-        name: image_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 标签列表
-          schema:
-            allOf:
-            - $ref: '#/definitions/common.Resp'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/model.Tag'
-                  type: array
-              type: object
-        "400":
-          description: ID格式错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "404":
-          description: 图片不存在
-          schema:
-            $ref: '#/definitions/common.Resp'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/common.Resp'
-      summary: 获取图片关联标签
-      tags:
-      - 标签
-  /api/public/tags/name:
-    get:
-      consumes:
-      - application/json
+      description: 通过标签名称查询标签信息
       parameters:
       - description: 标签名称
         in: query
@@ -1528,7 +1342,7 @@ paths:
       summary: 根据名称查询标签
       tags:
       - 标签
-  /api/public/tags/popular:
+  /api/tag/popular:
     get:
       consumes:
       - application/json
@@ -1561,10 +1375,11 @@ paths:
       summary: 获取热门标签列表
       tags:
       - 标签
-  /api/public/tags/search:
+  /api/tag/search:
     get:
       consumes:
       - application/json
+      description: 通过名称前缀模糊搜索标签
       parameters:
       - description: 搜索前缀
         in: query

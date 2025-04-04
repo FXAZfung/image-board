@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/base64"
 	conf "github.com/FXAZfung/image-board/internal/config"
+	"github.com/FXAZfung/image-board/internal/errs"
 	"strings"
 )
 
@@ -38,4 +39,13 @@ func GetNoneEmpty(strArr ...string) string {
 		}
 	}
 	return ""
+}
+
+// TrimSpace 去除字符串两端的空格，返回去除空格后的字符串，同时不能出现完全是空格的字符串，如果处理之后长度为0则抛出错误
+func TrimSpace(str string) (string, error) {
+	str = strings.TrimSpace(str)
+	if len(str) == 0 {
+		return "", errs.ErrEmptyString
+	}
+	return str, nil
 }

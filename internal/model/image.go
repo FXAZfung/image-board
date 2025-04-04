@@ -12,6 +12,7 @@ type Image struct {
 	Hash          string    `json:"hash" gorm:"unique;not null"`
 	Path          string    `json:"path"`           // 图片路径
 	ThumbnailPath string    `json:"thumbnail_path"` // 缩略图路径
+	WebpPath      string    `json:"webp_path"`
 	ContentType   string    `json:"content_type"`
 	Size          int64     `json:"size"`
 	Width         int       `json:"width"`

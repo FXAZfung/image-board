@@ -162,58 +162,27 @@ func DeleteTag(tagID uint) error {
 	return nil
 }
 
-// AddTagToImage
-func AddTagToImage(imageID uint, tagName string) error {
-	if err := db.AddTagToImage(imageID, tagName); err != nil {
-		return err
+func AddTagToImage(imageID uint, tagName string) (*model.Tag, error) {
+	tag, err := db.AddTagToImage(imageID, tagName)
+	if err != nil {
+		return nil, err
 	}
-
-	// Invalidate image cache for this image
+	cacheTag(tag)
 	ImageCacheUpdate()
-
-	return nil
-}
-
-// AddTagsToImage adds tags to an image with cache updates
-func AddTagsToImage(imageID uint, tags []string) error {
-
-	if err := db.AddTagsToImage(imageID, tags); err != nil {
-		return err
-	}
-
-	// Invalidate tag caches since counts may have changed
-	tagListCache.Clear()
-
-	// Invalidate image cache for this image
-	ImageCacheUpdate()
-
-	return nil
+	return tag, nil
 }
 
 // RemoveTagFromImage removes a tag from an image
-func RemoveTagFromImage(imageID uint, tagID uint) error {
-	if err := db.RemoveTagFromImage(imageID, tagID); err != nil {
-		return err
-	}
-
-	// Get tag to update cache
-	tag, err := GetTagByID(tagID)
-	if err == nil {
-		// Refresh tag in cache since count changed
+func RemoveTagFromImage(imageID uint, tagID uint) (*model.Tag, error) {
+	tag, err := db.RemoveTagFromImage(imageID, tagID)
+	if err != nil {
+		// 没有删除，缓存回滚
 		cacheTag(tag)
-	} else {
-		// If error, just invalidate tag cache
-		tagCache.Del(strconv.Itoa(int(tagID)))
+		return nil, err
 	}
-
-	// Invalidate lists that may contain this tag
-	tagListCache.Clear()
-
-	// Invalidate image cache for this image
-	key := strconv.Itoa(int(imageID))
-	imageCache.Del(key)
-
-	return nil
+	// 更新缓存
+	ImageCacheUpdate()
+	return tag, nil
 }
 
 // GetMostPopularTags retrieves the most used tags with caching

@@ -21,3 +21,7 @@ type ImageSearchReq struct {
 	StartDate string   `json:"start_date"`
 	EndDate   string   `json:"end_date"`
 }
+
+type ImageDeleteReq struct {
+	ID uint `json:"id" binding:"required"`
+}
