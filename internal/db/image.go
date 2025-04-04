@@ -14,24 +14,6 @@ func CreateImage(image *model.Image) error {
 	return db.Create(image).Error
 }
 
-// CreateImageWithTags creates an image with associated tags
-func CreateImageWithTags(image *model.Image, tagNames []string) error {
-	// Start transaction
-	return db.Transaction(func(tx *gorm.DB) error {
-		// Create image
-		if err := tx.Create(image).Error; err != nil {
-			return err
-		}
-
-		// Add tags to image
-		if len(tagNames) > 0 {
-			return AddTagsToImage(image.ID, tagNames)
-		}
-
-		return nil
-	})
-}
-
 // GetImageByID retrieves an image by ID
 func GetImageByID(id uint) (*model.Image, error) {
 	var image model.Image
